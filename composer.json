@@ -1,0 +1,17 @@
+{
+    "name": "a7/square-routing",
+    "description": "simple yet powerfull routing script",
+    "type": "library",
+    "license": "mit",
+    "autoload": {
+        "psr-4": {
+            "SquareRouting\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "a7dev"
+        }
+    ],
+    "require": {}
+}
