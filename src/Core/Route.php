@@ -21,7 +21,6 @@ class Route
         'day' => '(?:0[1-9]|[12][0-9]|3[01])',
         'bool' => '(?:true|false|1|0|yes|no)',
         'hexcolor' => '#?(?:[0-9a-fA-F]{3}){1,2}',
-        'all' => '.*',
         'path' => '.*' // New pattern for path parameters that can include slashes
     ];
     private Request $request;
