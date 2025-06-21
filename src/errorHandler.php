@@ -1,20 +1,20 @@
 <?php
 
-// Fehlerberichterstattung aktivieren (für Entwicklungsumgebungen)
+// Enable error reporting (for development environments)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
-error_reporting(E_ALL & ~E_DEPRECATED); // E_ALL außer E_DEPRECATED
+error_reporting(E_ALL & ~E_DEPRECATED); // E_ALL except E_DEPRECATED
 
-// Konstanten
+// Constants
 define('CODE_SNIPPET_LINES', 5);
-define('STACK_TRACE_SNIPPETS', 4); // Anzahl der Stacktrace-Einträge mit Snippets
+define('STACK_TRACE_SNIPPETS', 4); // Number of stack trace entries with snippets
 
-// Eigene Fehlerbehandlungsfunktion
+// Custom error handling function
 function customErrorHandler($errno, $errstr, $errfile, $errline) {
     logError("Error", $errno, $errstr, $errfile, $errline);
 }
 
-// Fehlerbehandlung für uncatchte Ausnahmen
+// Error handling for uncaught exceptions
 function customExceptionHandler($exception) {
     logError(
         "Uncaught Exception",
@@ -26,9 +26,9 @@ function customExceptionHandler($exception) {
     );
 }
 
-// Gemeinsame Funktion zum Loggen und Ausgeben von Fehlern
+// Common function for logging and outputting errors
 function logError($type, $code, $message, $file, $line, $trace = null) {
-    // Format für HTML-Ausgabe (Browser) - vollständige Fehlerausgabe
+    // Format for HTML output (browser) - full error output
     $htmlOutput = "<pre>\n";
     $htmlOutput .= "<strong>$type:</strong>\n";
     $htmlOutput .= "Code:". $code."\n";
@@ -36,38 +36,38 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
     $htmlOutput .= "File: $file\n";
     $htmlOutput .= "Line: $line\n";
 
-    // Format für Konsole (PhpStorm) - nur Stack Trace
+    // Format for console (PhpStorm) - stack trace only
     $consoleOutput = "\n$type: $message in $file on line $line\n";
     $consoleOutput .= "Stack Trace:\n";
 
-    // Zeige Code-Snippet für die ursprüngliche Fehlerposition (nur im Browser)
+    // Show code snippet for the original error location (browser only)
     $htmlOutput .= "\nInitial Error Location:\n";
     $htmlOutput .= showCodeSnippet($file, $line);
 
     // Stack Trace verarbeiten
     if ($trace === null) {
-        // Wenn kein Trace übergeben wurde, hole ihn via debug_backtrace
+        // If no trace was passed, get it via debug_backtrace
         $trace = debug_backtrace();
     } elseif (is_string($trace)) {
-        // Wenn der Trace als String übergeben wurde (von getTraceAsString)
+        // If the trace was passed as a string (from getTraceAsString)
         $htmlOutput .= "\nStack Trace:\n" . $trace;
         $consoleOutput .= $trace;
 
-        // Fehler in die Konsole schreiben (nur Stack Trace)
+        // Write error to console (stack trace only)
         error_log($consoleOutput, 4); // 4 bedeutet STDERR
 
-        // Fehler im Browser ausgeben (vollständige Ausgabe)
+        // Output error in browser (full output)
         echo $htmlOutput . "</pre>\n";
         return;
     }
 
     $htmlOutput .= "\nDetailed Stack Trace (last " . STACK_TRACE_SNIPPETS . " entries):\n";
 
-    // Die letzten X Einträge des Stack Trace verarbeiten
+    // Process the last X entries of the stack trace
     $relevantTrace = array_slice($trace, 0, STACK_TRACE_SNIPPETS);
     foreach ($relevantTrace as $index => $traceEntry) {
         if (isset($traceEntry['file']) && isset($traceEntry['line'])) {
-            // Für Browser: Detaillierter Stack Trace mit Code-Snippets
+            // For browser: Detailed stack trace with code snippets
             $htmlOutput .= "\n<h3>Stack Level " . ($index + 1) . "</h3>:\n";
             $htmlOutput .= "File: " . $traceEntry['file'] . "\n";
             $htmlOutput .= "Line: " . $traceEntry['line'] . "\n";
@@ -75,7 +75,7 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
             $htmlOutput .= "Code Context:\n";
             $htmlOutput .= showCodeSnippet($traceEntry['file'], $traceEntry['line']);
 
-            // Für PhpStorm: Nur die Stack-Trace-Informationen
+            // For PhpStorm: Only the stack trace information
             $consoleOutput .= "#$index {$traceEntry['file']}({$traceEntry['line']}): ";
             $consoleOutput .= isset($traceEntry['class']) ? "{$traceEntry['class']}{$traceEntry['type']}" : "";
             $consoleOutput .= "{$traceEntry['function']}()\n";
@@ -95,15 +95,15 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
 
     $htmlOutput .= "</pre>\n";
 
-    // Fehler in die Konsole schreiben (für PhpStorm) - nur Stack Trace
+    // Write error to console (for PhpStorm) - stack trace only
     error_log($consoleOutput, 4); // 4 bedeutet STDERR
 
-    // Fehler im Browser ausgeben - vollständige Ausgabe
+    // Output error in browser - full output
     echo $htmlOutput;
 }
-// Funktion zum Anzeigen von Code-Ausschnitten
+// Function to display code snippets
 function showCodeSnippet($file, $line) {
-    if (!file_exists($file)) return "Datei nicht gefunden.\n";
+    if (!file_exists($file)) return "File not found.\n";
 
     $lines = file($file);
     $start = max(0, $line - CODE_SNIPPET_LINES);

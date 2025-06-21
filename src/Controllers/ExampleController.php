@@ -2,7 +2,7 @@
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\Response; // Wichtig für den Return Type Hint
+use SquareRouting\Core\Response; // Important for the Return Type Hint
 
 class ExampleController  {
   public Response $response;
@@ -18,15 +18,15 @@ class ExampleController  {
         'message' => 'This is a proper JSON response!'
     ];
     
-    return $this->response->json($data, 200);
+    return (new Response)->json($data, 200);
   }
   
   public function showHtmlPage(): Response {
-      $html = "<h1>Hallo Welt!</h1><p>Dies ist eine HTML-Seite.</p>";
-      return $this->response->html($html);
+      $html = "<h1>Hello World!</h1><p>This is an HTML page.</p>";
+      return (new Response)->html($html);
   }
 
   public function redirectToGoogle(): Response {
-      return $this->response->reroute('https://www.google.com');
+      return (new Response)->reroute('https://www.google.com');
   }
 }

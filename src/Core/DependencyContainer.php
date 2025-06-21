@@ -3,26 +3,26 @@
 namespace SquareRouting\Core;
 
 /**
- * Ein moderner, leichtgewichtiger Dependency Injection Container
+ * A modern, lightweight Dependency Injection Container
  */
 class DependencyContainer
 {
     /**
-     * Speichert registrierte Definitionen
+     * Stores registered definitions
      */
     private array $definitions = [];
 
     /**
-     * Speichert bereits instanziierte Services (Singleton-Pattern)
+     * Stores already instantiated services (Singleton pattern)
      */
     private array $instances = [];
 
     /**
-     * Registriert einen Service mit einer Factory-Funktion
+     * Registers a service with a factory function
      *
-     * @param string $id Identifier des Services
-     * @param callable $factory Factory-Funktion, die den Service erstellt
-     * @param bool $singleton Ob der Service als Singleton behandelt werden soll
+     * @param string $id Service identifier
+     * @param callable $factory Factory function that creates the service
+     * @param bool $singleton Whether the service should be treated as a singleton
      * @return self
      */
     public function set(string $id, callable $factory, bool $singleton = true): self
@@ -36,17 +36,17 @@ class DependencyContainer
     }
 
     /**
-     * Registriert eine Klasse mit automatischer Constructor-Injection
+     * Registers a class with automatic Constructor Injection
      *
-     * @param string $id Identifier des Services (optional, wenn nicht angegeben wird der Klassenname verwendet)
-     * @param string $className Name der Klasse
-     * @param array $parameters Zusätzliche Parameter für den Constructor
-     * @param bool $singleton Ob der Service als Singleton behandelt werden soll
+     * @param string $id Service identifier (optional, if not provided, the class name is used)
+     * @param string $className Class name
+     * @param array $parameters Additional parameters for the constructor
+     * @param bool $singleton Whether the service should be treated as a singleton
      * @return self
      */
     public function register(?string $id = null, ?string $className = null, array $parameters = [], bool $singleton = true): self
     {
-        // Wenn nur ein Parameter übergeben wurde, ist es der Klassenname
+        // If only one parameter was passed, it is the class name
         if ($className === null) {
             $className = $id;
             $id = $className;
@@ -64,13 +64,13 @@ class DependencyContainer
             foreach ($constructor->getParameters() as $param) {
                 $paramName = $param->getName();
 
-                // Wenn Parameter explizit übergeben wurde
+                // If parameter was explicitly passed
                 if (isset($parameters[$paramName])) {
                     $dependencies[] = $parameters[$paramName];
                     continue;
                 }
 
-                // Type-Hint auslesen für Autowiring
+                // Read type hint for autowiring
                 $type = $param->getType();
                 if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
                     $dependencies[] = $this->get($type->getName());
@@ -79,7 +79,7 @@ class DependencyContainer
                 } elseif ($param->allowsNull()) {
                     $dependencies[] = null;
                 } else {
-                    throw new \Exception("Parameter '$paramName' in $className kann nicht injiziert werden");
+                    throw new \Exception("Parameter '$paramName' in $className cannot be injected");
                 }
             }
 
@@ -88,35 +88,35 @@ class DependencyContainer
     }
 
     /**
-     * Holt einen Service aus dem Container
+     * Retrieves a service from the container
      *
      * @param string $id Identifier des Services
      * @return mixed
-     * @throws \Exception Wenn der Service nicht gefunden wurde
+     * @throws \Exception If the service is not found
      */
     public function get(string $id)
     {
-        // Wenn der Service nicht registriert ist, versuchen wir, ihn automatisch zu registrieren
+        // If the service is not registered, try to register it automatically
         if (!isset($this->definitions[$id])) {
-            // Prüfen, ob die ID eine existierende Klasse ist
+            // Check if the ID is an existing class
             if (class_exists($id)) {
                 $this->register($id);
             } else {
-                throw new \Exception("Service '$id' nicht gefunden");
+                throw new \Exception("Service '$id' not found");
             }
         }
 
         $def = $this->definitions[$id];
 
-        // Bei Singleton: Prüfen, ob bereits instanziiert
+        // For singleton: Check if already instantiated
         if ($def['singleton'] && isset($this->instances[$id])) {
             return $this->instances[$id];
         }
 
-        // Service erzeugen
+        // Create service
         $instance = $def['factory']($this);
 
-        // Bei Singleton: Instance speichern
+        // For singleton: Store instance
         if ($def['singleton']) {
             $this->instances[$id] = $instance;
         }
@@ -125,7 +125,7 @@ class DependencyContainer
     }
 
     /**
-     * Prüft, ob ein Service registriert ist
+     * Checks if a service is registered
      *
      * @param string $id Identifier des Services
      * @return bool
@@ -136,7 +136,7 @@ class DependencyContainer
     }
 
     /**
-     * Entfernt einen Service aus dem Container
+     * Removes a service from the container
      *
      * @param string $id Identifier des Services
      * @return self

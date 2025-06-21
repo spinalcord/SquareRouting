@@ -12,13 +12,13 @@ class RouteCollector
     {
     }
 
-    // Eine Route-Instanz hinzufügen
+    // Add a Route instance
     public function add(Route $route): void
     {
         $this->routeInstances[] = $route;
     }
 
-    // Führt alle Routen der gesammelten Route-Instanzen zusammen
+    // Merges all routes from the collected Route instances
     public function getMergedRoute(): Route
     {
         $merged = new Route($this->container);
@@ -32,7 +32,7 @@ class RouteCollector
         return $merged;
     }
 
-    // Dispatch auf der zusammengeführten Route ausführen
+    // Execute dispatch on the merged route
     public function dispatch(): void
     {
         $mergedRoute = $this->getMergedRoute();

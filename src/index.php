@@ -19,8 +19,6 @@ if (session_status() == PHP_SESSION_NONE) {
 
 $container->register(Request::class);
 $request = $container->get(Request::class); 
-$container->register(Response::class);
-$response = $container->get(Response::class); 
 
 $routeCollector = new RouteCollector($container);
 $applicationRoute = new ApplicationRoutes();

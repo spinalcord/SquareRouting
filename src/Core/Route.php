@@ -202,37 +202,37 @@ private function executeRoute(array $route, array $params): void
             /*     throw new \Exception('Controller class '.get_class($controller).' does not extend ' . BaseController::class); */
             /* } */
 
-            // Controller-Aktion aufrufen und den Rückgabewert speichern
+            // Call controller action and save the return value
             $response = call_user_func_array([$controller, $route['action']], $params);
 
-            // 'after' filters (können jetzt ausgeführt werden!)
+            // 'after' filters (can be executed now!)
             foreach ($route['filters'] as $filter) {
                 if (method_exists($filter, 'after')) {
-                    // Optional: Man könnte die $response hier an den Filter übergeben,
-                    // damit dieser die Antwort noch modifizieren kann.
+                    // Optional: One could pass the $response here to the filter,
+                    // so that it can still modify the response.
                     // $filter->after($this->request, $response);
                     $filter->after($this->request);
                 }
             }
             
-            // Verarbeite den Rückgabewert
+            // Process the return value
             if ($response instanceof Response) {
                 $response->send(); // Sende die Antwort an den Client
             } elseif (is_string($response)) {
-                // Fallback: Wenn nur ein String zurückgegeben wird, als HTML senden.
+                // Fallback: If only a string is returned, send as HTML.
                 (new Response())->html($response)->send();
             } elseif (is_array($response)) {
-                // Fallback: Wenn ein Array zurückgegeben wird, als JSON senden.
+                // Fallback: If an array is returned, send as JSON.
                 (new Response())->json($response)->send();
             }
-            // Wenn nichts zurückgegeben wird (null), passiert einfach nichts.
-            // Das ist nützlich, wenn der Controller z.B. nur einen Download startet.
+            // If nothing is returned (null), nothing happens.
+            // This is useful if the controller, for example, only starts a download.
             
         } catch (\Throwable $e) {
-            // Fehlerbehandlung: Bei einer Exception eine saubere 500er-Fehlerseite ausgeben
+            // Error handling: In case of an exception, output a clean 500 error page
             error_log($e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
             
-            // Erstelle eine saubere JSON-Fehlerantwort
+            // Create a clean JSON error response
             $errorResponse = new Response();
             $errorResponse->error('Internal Server Error', 500)->send();
         }

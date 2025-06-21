@@ -9,10 +9,10 @@ class Response {
     private string $body = '';
 
     /**
-     * Konfiguriert die Response für eine JSON-Antwort.
+     * Configures the response for a JSON reply.
      *
-     * @param mixed $data Die zu kodierenden Daten.
-     * @param int $status Der HTTP-Statuscode.
+     * @param mixed $data The data to encode.
+     * @param int $status The HTTP status code.
      * @return self
      */
     public function json(mixed $data, int $status = 200): self
@@ -20,14 +20,14 @@ class Response {
         $this->status = $status;
         $this->setHeader('Content-Type', 'application/json');
         $this->body = json_encode($data);
-        return $this; // Wichtig: Gib $this zurück für Method-Chaining.
+        return $this; // Important: Return $this for method chaining.
     }
 
     /**
-     * Konfiguriert die Response für eine Fehlerantwort im JSON-Format.
+     * Configures the response for an error reply in JSON format.
      *
-     * @param string $message Die Fehlermeldung.
-     * @param int $status Der HTTP-Statuscode.
+     * @param string $message The error message.
+     * @param int $status The HTTP status code.
      * @return self
      */
     public function error(string $message, int $status = 400): self
@@ -39,10 +39,10 @@ class Response {
     }
 
     /**
-     * Konfiguriert die Response für eine einfache Textantwort.
+     * Configures the response for a simple text reply.
      *
-     * @param string $message Der Textinhalt.
-     * @param int $status Der HTTP-Statuscode.
+     * @param string $message The text content.
+     * @param int $status The HTTP status code.
      * @return self
      */
     public function text(string $message, int $status = 200): self
@@ -54,10 +54,10 @@ class Response {
     }
 
     /**
-     * Konfiguriert die Response für eine HTML-Antwort.
+     * Configures the response for an HTML reply.
      *
-     * @param string $html Der HTML-Inhalt.
-     * @param int $status Der HTTP-Statuscode.
+     * @param string $html The HTML content.
+     * @param int $status The HTTP status code.
      * @return self
      */
     public function html(string $html, int $status = 200): self
@@ -69,10 +69,10 @@ class Response {
     }
 
     /**
-     * Konfiguriert die Response für eine Weiterleitung.
+     * Configures the response for a redirect.
      *
-     * @param string $url Die Ziel-URL.
-     * @param int $status Der HTTP-Statuscode (meist 302 oder 301).
+     * @param string $url The target URL.
+     * @param int $status The HTTP status code (usually 302 or 301).
      * @return self
      */
     public function reroute(string $url, int $status = 302): self
@@ -83,10 +83,10 @@ class Response {
     }
 
     /**
-     * Setzt einen benutzerdefinierten Header.
+     * Sets a custom header.
      *
-     * @param string $name Der Name des Headers.
-     * @param string $value Der Wert des Headers.
+     * @param string $name The name of the header.
+     * @param string $value The value of the header.
      * @return self
      */
     public function setHeader(string $name, string $value): self
@@ -96,25 +96,25 @@ class Response {
     }
     
     /**
-     * Sendet die gesammelten Header und den Body an den Client.
-     * Diese Methode sollte nur einmal am Ende des Request-Lifecycles aufgerufen werden.
+     * Sends the collected headers and body to the client.
+     * This method should only be called once at the end of the request lifecycle.
      */
     public function send(): void
     {
-        // Verhindert, dass Header gesendet werden, wenn sie schon gesendet wurden.
+        // Prevents headers from being sent if they have already been sent.
         if (headers_sent()) {
             return;
         }
 
-        // Sende den Statuscode
+        // Send the status code
         http_response_code($this->status);
 
-        // Sende alle Header
+        // Send all headers
         foreach ($this->headers as $name => $value) {
             header("{$name}: {$value}");
         }
 
-        // Sende den Body
+        // Send the body
         echo $this->body;
     }
 }
