@@ -19,7 +19,7 @@ if (session_status() == PHP_SESSION_NONE) {
 ////////////////////////////////////
 // SETUP DependencyContainer
 ////////////////////////////////////
-
+$cacheLocation =__DIR__ . "/../app/Cache";
 $container = new DependencyContainer();
 
 
@@ -27,10 +27,10 @@ $container->register(Request::class);
 $request = $container->get(Request::class); 
 
 $container->register(Cache::class, parameters:
-    ['cacheDir' => __DIR__ . "/Cache", '$defaultTtl' => 3600]);
+    ['cacheDir' => $cacheLocation, '$defaultTtl' => 3600]);
 $cache = $container->get(Cache::class);
 
-$container->register(RateLimiter::class);
+$container->register(RateLimiter::class,parameters: ['dataFile' => $cacheLocation . "/rate_limit.json"]);
 $rateLimiter = $container->get(RateLimiter::class); 
 
 $routeCollector = new RouteCollector($container);

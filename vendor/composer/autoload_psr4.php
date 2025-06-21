@@ -6,5 +6,5 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
-    'SquareRouting\\' => array($baseDir . '/src'),
+    'SquareRouting\\' => array($baseDir . '/app'),
 );
