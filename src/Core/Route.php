@@ -184,13 +184,21 @@ class Route
      */
 private function executeRoute(array $route, array $params): void
     {
+        ////////////////////////////////////////////////
         // 'before' filters
-        foreach ($route['filters'] as $filter) {
-            if (method_exists($filter, 'before')) {
-                $filter->before($this->request);
+        foreach ($route['filters'] as $filterClass) {
+            // Überprüfen, ob die Klasse existiert, um Fehler zu vermeiden
+            if (class_exists($filterClass)) {
+                // Erstelle eine neue Instanz der Filter-Klasse
+                $filterInstance = new $filterClass();
+
+                // Rufe die 'before'-Methode auf der Instanz auf
+                if (method_exists($filterInstance, 'before')) {
+                    $filterInstance->before($this->container);
+                }
             }
         }
-
+        ////////////////////////////////////////////////
         try {
             // Controller instance 
             $controller = new $route['controller'](
@@ -204,15 +212,6 @@ private function executeRoute(array $route, array $params): void
             // Call controller action and save the return value
             $response = call_user_func_array([$controller, $route['action']], $params);
 
-            // 'after' filters (can be executed now!)
-            foreach ($route['filters'] as $filter) {
-                if (method_exists($filter, 'after')) {
-                    // Optional: One could pass the $response here to the filter,
-                    // so that it can still modify the response.
-                    // $filter->after($this->request, $response);
-                    $filter->after($this->request);
-                }
-            }
             
             // Process the return value
             if ($response instanceof Response) {
@@ -227,6 +226,23 @@ private function executeRoute(array $route, array $params): void
             // If nothing is returned (null), nothing happens.
             // This is useful if the controller, for example, only starts a download.
             
+            ////////////////////////////////////////////////
+            // 'after' filters (can be executed now!)
+            foreach ($route['filters'] as $filterClass) {
+                // Überprüfen, ob die Klasse existiert
+                if (class_exists($filterClass)) {
+                    // Erstelle eine neue Instanz der Filter-Klasse
+                    $filterInstance = new $filterClass();
+
+                    if (method_exists($filterInstance, 'after')) {
+                        // Optional: One could pass the $response here to the filter,
+                        // so that it can still modify the response.
+                        // $filterInstance->after($this->request, $response);
+                        $filterInstance->after($this->container);
+                    }
+                }
+            }
+            ////////////////////////////////////////////////
         } catch (\Throwable $e) {
             // Error handling: In case of an exception, output a clean 500 error page
             error_log($e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());

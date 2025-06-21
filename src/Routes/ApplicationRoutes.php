@@ -7,7 +7,7 @@ use SquareRouting\Controllers\ExampleController;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Interfaces\RoutableInterface;
 use SquareRouting\Core\Route;
-
+use SquareRouting\Filters\ExampleFilter;
 
 class ApplicationRoutes implements RoutableInterface
 {
@@ -28,6 +28,10 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/rate-limit-example', ExampleController::class, 'rateLimiterExample');
         $route->get('/cache-example', ExampleController::class, 'cacheExample');
         $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
+
+        $route->get('/filtertest', ExampleController::class, 'filterTest')
+              ->filter([ExampleFilter::class]);
+
         // Post Example
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');
 

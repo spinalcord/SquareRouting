@@ -125,5 +125,10 @@ class ExampleController  {
     $data = $this->request->post();
     return (new Response)->json(['status' => 'success', 'message' => 'POST request received!', 'data' => $data], 200);
   }
+
+
+  public function filterTest(): Response {
+    return (new Response)->html(" Filter Test ");
+  }
 }
 
