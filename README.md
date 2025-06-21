@@ -114,26 +114,8 @@ $route->reroute('/reroute-test', '/google'); // Example from ApplicationRoutes.p
 
 The `Request` and `Response` classes provide convenient methods for interacting with HTTP requests and responses.
 
-**Request:**
-
-```php
-use SquareRouting\Core\Request;
-
-class ExampleController
-{
-    public function someAction(Request $request)
-    {
-        $getParam = $request->get('paramName');
-        $postParam = $request->post('paramName');
-        $allParams = $request->all();
-        $header = $request->header('User-Agent');
-        $isPost = $request->isPost();
-        $rawBody = $request->rawBody();
-        $jsonData = $request->json('key');
-        $clientIp = $request->getClientIp();
-    }
-}
-```
+**Request**
+Missing Doc..
 
 **Response:**
 
