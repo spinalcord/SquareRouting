@@ -51,4 +51,14 @@ $routeCollector = new RouteCollector($container);
 $applicationRoute = new ApplicationRoutes();
 
 $routeCollector->add($applicationRoute->getRoute($container));
-$routeCollector->dispatch();
+
+if($routeCollector->dispatch() == false)
+{
+    if(file_exists("index.html"))
+    {
+        // We use index.html as fallback if you are using a JavaScript framework such as svelte.
+        // Otherwise you could also use a 404.html
+        header("Content-Type: text/html");
+        readfile("index.html");
+    } // else: route/api call
+}

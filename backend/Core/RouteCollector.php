@@ -33,9 +33,9 @@ class RouteCollector
     }
 
     // Execute dispatch on the merged route
-    public function dispatch(): void
+    public function dispatch(): bool
     {
         $mergedRoute = $this->getMergedRoute();
-        $mergedRoute->dispatch();
+        return $mergedRoute->dispatch();
     }
 }

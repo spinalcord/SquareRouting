@@ -102,7 +102,7 @@ class Route
         return $compiled;
     }
 
-    public function dispatch(): void {
+    public function dispatch(): bool {
         $requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $requestMethod = $_SERVER['REQUEST_METHOD'];
         $requestPath   = $this->normalizePath($requestUri);
@@ -122,7 +122,7 @@ class Route
                 if ($patternResult) {
                     list($matches, $params) = $patternResult;
                     $this->executeRoute($route, $params);
-                    return;
+                    return true;
                 }
             } else {
                 $pattern = $this->buildRoutePattern($route['path'], $route['params']);
@@ -135,12 +135,13 @@ class Route
                     }
 
                     $this->executeRoute($route, $params);
-                    return;
+                    return true;
                 }
             }
         }
-        header("HTTP/1.0 404 Not Found");
-        echo "404 Not Found";
+        //header("HTTP/1.0 404 Not Found");
+        //echo "404 Not Found";
+        return false;
     }
 
     /**
