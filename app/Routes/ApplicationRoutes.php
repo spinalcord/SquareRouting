@@ -28,7 +28,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/rate-limit-example', ExampleController::class, 'rateLimiterExample');
         $route->get('/cache-example', ExampleController::class, 'cacheExample');
         $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
-
+        $route->get('/dotenv-example', ExampleController::class, 'envExample');
         $route->get('/filtertest', ExampleController::class, 'filterTest')
               ->filter([ExampleFilter::class]);
 

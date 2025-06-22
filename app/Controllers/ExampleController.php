@@ -2,20 +2,31 @@
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response; // Important for the Return Type Hint
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
+use SquareRouting\Core\Validation\Validator;
+use SquareRouting\Core\Validation\Rules\Required;
+use SquareRouting\Core\Validation\Rules\Email;
+use SquareRouting\Core\Validation\Rules\Min;
+use SquareRouting\Core\Validation\Rules\Max;
+use SquareRouting\Core\Validation\Rules\In;
+use SquareRouting\Core\Validation\Rules\IsArray;
+use SquareRouting\Core\Validation\Rules\Json;
 
 class ExampleController  {
   public Request $request;
   public RateLimiter $rateLimiter;
   public Cache $cache;
+  public DotEnv $dotEnv;
 
   public function __construct(DependencyContainer $container) {
    $this->rateLimiter = $container->get(RateLimiter::class);
    $this->cache = $container->get(Cache::class);
    $this->request = $container->get(Request::class);
+   $this->dotEnv = $container->get(DotEnv::class);
   }
 
   public function someTest(int $mynum): Response {
@@ -35,6 +46,13 @@ class ExampleController  {
                </form>";
       return (new Response)->html($html);
   }
+
+
+  public function handlePostRequest(): Response {
+    $data = $this->request->post();
+    return (new Response)->json(['status' => 'success', 'message' => 'POST request received!', 'data' => $data], 200);
+  }
+
 
   public function redirectToGoogle(): Response {
       return (new Response)->reroute('https://www.google.com');
@@ -121,14 +139,56 @@ class ExampleController  {
     return (new Response)->html($htmlContent);
   }
 
-  public function handlePostRequest(): Response {
-    $data = $this->request->post();
-    return (new Response)->json(['status' => 'success', 'message' => 'POST request received!', 'data' => $data], 200);
-  }
-
-
   public function filterTest(): Response {
     return (new Response)->html(" Filter Test ");
+  }
+  
+  function envExample(): Response {
+    $testValue = $this->dotEnv->get("TESTVALUE");
+    return (new Response)->html("The .env value is: ".$testValue);
+  }
+
+  public function validateExample(): Response {
+    $data = $this->request->post(); 
+
+    // 2. The rules for the data
+    $rules = [
+        'username' => [new Required(), new Min(5)],
+        'password' => [new Required(), new Min(8)],
+        'status' => [new Required(), new In(['active', 'inactive', 'pending'])],
+
+        // Nested validation using dot notation
+        'contact.email' => [new Required(), new Email()],
+        'contact.address.city' => [new Required()],
+
+        // Array validation using the '*' wildcard
+        'tags' => [new IsArray(), new Min(1)], // The 'tags' field itself must be an array with at least 1 item.
+        'tags.*.id' => [new Required()], // Rule for each item in the 'tags' array
+        'tags.*.name' => [new Required(), new Min(3)],
+
+        // JSON validation
+        'metadata_json' => [new Json()],
+        'invalid_json' => [new Json()],
+    ];
+
+    // 3. Create a validator instance and run it
+    $validator = Validator::make($data, $rules);
+
+    if ($validator->fails()) {
+        return (new Response)->json([
+            'status' => 'error',
+            'message' => 'Validation failed',
+            'errors' => $validator->errors(),
+            'data_used_for_validation' => $data
+        ], 400);
+    } else {
+        return (new Response)->json([
+            'status' => 'success',
+            'message' => 'Validation passed',
+            'validated_data' => $validator->validated(),
+            'data_used_for_validation' => $data
+        ], 200);
+    }
   }
 }
 

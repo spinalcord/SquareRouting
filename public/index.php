@@ -2,6 +2,7 @@
 
 namespace SquareRouting;
 
+use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
 use SquareRouting\Routes\ApplicationRoutes;
@@ -22,6 +23,8 @@ if (session_status() == PHP_SESSION_NONE) {
 $cacheLocation =__DIR__ . "/../app/Cache";
 $container = new DependencyContainer();
 
+$container->register(DotEnv::class, parameters: ['path' => __DIR__ . '/../app/Configs/.env' ]);
+$dotEnv = $container->get(DotEnv::class); 
 
 $container->register(Request::class);
 $request = $container->get(Request::class); 
@@ -33,12 +36,13 @@ $cache = $container->get(Cache::class);
 $container->register(RateLimiter::class,parameters: ['dataFile' => $cacheLocation . "/rate_limit.json"]);
 $rateLimiter = $container->get(RateLimiter::class); 
 
-$routeCollector = new RouteCollector($container);
-$applicationRoute = new ApplicationRoutes();
 
 ////////////////////////////////////
 // SETUP Routing
 ////////////////////////////////////
+
+$routeCollector = new RouteCollector($container);
+$applicationRoute = new ApplicationRoutes();
 
 $routeCollector->add($applicationRoute->getRoute($container));
 $routeCollector->dispatch();

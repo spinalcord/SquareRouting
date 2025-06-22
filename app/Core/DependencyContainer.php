@@ -79,7 +79,7 @@ class DependencyContainer
                 } elseif ($param->allowsNull()) {
                     $dependencies[] = null;
                 } else {
-                    throw new \Exception("Parameter '$paramName' in $className cannot be injected");
+                    throw new \Exception("Missing parameter $paramName. Make sure your register $className with $paramName.");
                 }
             }
 
