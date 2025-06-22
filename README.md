@@ -50,12 +50,12 @@ class ApplicationRoutes implements RoutableInterface
         $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // Reroute Example
-        $route->reroute('/reroute-test', '/google'); // Reroutes to the /google route, which then redirects to Google.com
-        
+        $route->reroute('/reroute-test', '/redirect-to-google'); // Reroutes, which then redirects to Google.com
+        $route->get('/redirect-to-google', ExampleController::class, 'redirectToGoogle');
+
         // GET Routes
         $route->get('/html', ExampleController::class, 'showHtmlPage');
         $route->get('/test/:myid', ExampleController::class, 'someTest', ['myid' => 'num']);
-        $route->get('/redirect-to-google', ExampleController::class, 'redirectToGoogle');
         $route->get('/rate-limit-example', ExampleController::class, 'rateLimiterExample');
         $route->get('/cache-example', ExampleController::class, 'cacheExample');
         $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
