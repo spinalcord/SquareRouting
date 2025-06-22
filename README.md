@@ -246,6 +246,38 @@ class ExampleController {
 }
 ```
 
+### Rate Limiting Example
+
+The `rateLimiterExample` method demonstrates how to use the built-in `RateLimiter` to protect your endpoints from excessive requests.
+
+```php
+// app/Controllers/ExampleController.php
+class ExampleController {
+    public RateLimiter $rateLimiter;
+
+    public function __construct(DependencyContainer $container) {
+        $this->rateLimiter = $container->get(RateLimiter::class);
+    }
+
+    public function rateLimiterExample(): Response {
+        $clientId = $_SERVER['REMOTE_ADDR']; // Get client IP address
+        $key = 'api_access'; // Define a key for the rate limit
+
+        $this->rateLimiter->setLimit($key, 5, 60); // 5 attempts per 60 seconds
+
+        if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
+            $remainingTime = $this->rateLimiter->getRemainingTimeToReset($key, $clientId);
+            return (new Response)->json(['status' => 'error', 'message' => 'Rate limit exceeded. Try again in ' . $remainingTime . ' seconds.'], 429);
+        }
+
+        $this->rateLimiter->registerAttempt($key, $clientId);
+        $remainingAttempts = $this->rateLimiter->getRemainingAttempts($key, $clientId);
+
+        return (new Response)->json(['status' => 'success', 'message' => 'API access granted.', 'remaining_attempts' => $remainingAttempts], 200);
+    }
+}
+```
+
 ### .env Example
 
 The `envExample` method demonstrates how to access environment variables defined in the `.env` file using the `DotEnv` class.
@@ -335,6 +367,118 @@ class ExampleController {
     }
 }
 ```
+
+### Database Examples (PDO)
+
+The `ExampleController` includes methods demonstrating basic database operations using PDO.
+
+#### Create Table and Insert Data Example
+
+The `pdoCreateTableExample` method shows how to create a `users` table (if it doesn't exist) and insert sample data.
+
+```php
+// app/Controllers/ExampleController.php
+class ExampleController {
+    private PDO $db;
+
+    public function __construct(DependencyContainer $container) {
+        $this->db = $container->get(DatabaseConnection::class)->getPdo();
+    }
+
+    public function pdoCreateTableExample(): Response {
+        try {
+            $sql = "CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username VARCHAR(50) NOT NULL UNIQUE,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )";
+            
+            $this->db->exec($sql);
+            
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM users");
+            $checkStmt->execute();
+            $userCount = $checkStmt->fetchColumn();
+            
+            if ($userCount == 0) {
+                $insertSql = "INSERT INTO users (username, email, password_hash) VALUES
+                            ('john_doe', 'john@example.com', :password1),
+                            ('jane_smith', 'jane@example.com', :password2),
+                            ('bob_wilson', 'bob@example.com', :password3)";
+                
+                $insertStmt = $this->db->prepare($insertSql);
+                $insertStmt->execute([
+                    ':password1' => password_hash('password123', PASSWORD_DEFAULT),
+                    ':password2' => password_hash('secret456', PASSWORD_DEFAULT),
+                    ':password3' => password_hash('mypass789', PASSWORD_DEFAULT)
+                ]);
+                
+                $insertedRows = $insertStmt->rowCount();
+                
+                return (new Response)->json([
+                    'status' => 'success',
+                    'message' => 'Table created and sample data inserted',
+                    'table_name' => 'users',
+                    'inserted_rows' => $insertedRows
+                ], 201);
+            } else {
+                return (new Response)->json([
+                    'status' => 'success',
+                    'message' => 'Table already exists with data',
+                    'table_name' => 'users',
+                    'existing_rows' => $userCount
+                ], 200);
+            }
+            
+        } catch (PDOException $e) {
+            return (new Response)->json([
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
+```
+
+#### Read Table Example
+
+The `pdoReadTableExample` method demonstrates how to read all records from a `users` table.
+
+```php
+// app/Controllers/ExampleController.php
+class ExampleController {
+    private PDO $db;
+
+    public function __construct(DependencyContainer $container) {
+        $this->db = $container->get(DatabaseConnection::class)->getPdo();
+    }
+
+    public function pdoReadTableExample(): Response {
+        try {
+            $stmt = $this->db->prepare("SELECT id, username, email, created_at FROM users ORDER BY created_at DESC");
+            $stmt->execute();
+            
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return (new Response)->json([
+                'status' => 'success',
+                'message' => 'Users retrieved successfully',
+                'data' => $users,
+                'count' => count($users)
+            ], 200);
+            
+        } catch (PDOException $e) {
+            return (new Response)->json([
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+}
+```
+
 ### Running the Application
 
 You can use a PHP development server to run the application:

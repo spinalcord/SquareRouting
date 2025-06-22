@@ -92,6 +92,7 @@ class ExampleController  {
         ];
     }, $ttl);
 
+    // Helper logic to display the remaining time
     $generatedAt = $data['generated_at'] ?? null;
     $expiresAt = null;
     $remainingSeconds = null;
