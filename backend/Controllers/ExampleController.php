@@ -59,7 +59,7 @@ class ExampleController  {
 
 
   public function redirectToGoogle(): Response {
-      return (new Response)->reroute('https://www.google.com');
+      return (new Response)->redirect('https://www.google.com');
   }
 
   public function rateLimiterExample(): Response {

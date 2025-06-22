@@ -75,7 +75,7 @@ class Response {
      * @param int $status The HTTP status code (usually 302 or 301).
      * @return self
      */
-    public function reroute(string $url, int $status = 302): self
+    public function redirect(string $url, int $status = 302): self
     {
         $this->status = $status;
         $this->setHeader('Location', $url);

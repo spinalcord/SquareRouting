@@ -9,7 +9,7 @@ use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
 use SquareRouting\Core\DatabaseConnection;
 
-require_once __DIR__ . '/../Backend/vendor/autoload.php';
+require_once __DIR__ . '/../backend/vendor/autoload.php';
 require __DIR__ . '/errorHandler.php';
 
 
@@ -21,11 +21,11 @@ if (session_status() == PHP_SESSION_NONE) {
 ////////////////////////////////////
 // SETUP DependencyContainer
 ////////////////////////////////////
-$cacheLocation =__DIR__ . "/../Backend/Cache";
+$cacheLocation =__DIR__ . "/../backend/Cache";
 
 $container = new DependencyContainer();
 
-$container->register(DotEnv::class, parameters: ['path' => __DIR__ . '/../Backend/Configs/.env' ]);
+$container->register(DotEnv::class, parameters: ['path' => __DIR__ . '/../backend/Configs/.env' ]);
 $dotEnv = $container->get(DotEnv::class); 
 
 $container->register(Request::class);
@@ -39,7 +39,7 @@ $container->register(RateLimiter::class,parameters: ['dataFile' => $cacheLocatio
 $rateLimiter = $container->get(RateLimiter::class); 
 
 // Database connection
-$container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => "../Backend/Database/"]);
+$container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => "../backend/Database/"]);
 $db = $container->get(DatabaseConnection::class); 
 
 
