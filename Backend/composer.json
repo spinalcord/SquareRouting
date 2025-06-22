@@ -2,10 +2,10 @@
     "name": "a7/square-routing",
     "description": "simple yet powerfull routing script",
     "type": "project",
-    "license": "mit",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
-            "SquareRouting\\": "app/"
+            "SquareRouting\\": "./"
         }
     },
     "authors": [
