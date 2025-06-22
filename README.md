@@ -1,3 +1,4 @@
+![](logo.jpg)
 # SquareRouting
 
 A simple yet powerful PHP routing script designed for clarity and flexibility. This project provides a robust foundation for building web applications with clean URL structures, route parameters, and essential features like rate limiting and caching.
