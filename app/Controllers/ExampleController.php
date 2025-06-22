@@ -7,6 +7,8 @@ use SquareRouting\Core\Request;
 use SquareRouting\Core\Response; // Important for the Return Type Hint
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
+use SquareRouting\Core\DatabaseConnection;
+use PDO;
 use SquareRouting\Core\Validation\Validator;
 use SquareRouting\Core\Validation\Rules\Required;
 use SquareRouting\Core\Validation\Rules\Email;
@@ -21,12 +23,14 @@ class ExampleController  {
   public RateLimiter $rateLimiter;
   public Cache $cache;
   public DotEnv $dotEnv;
+  private PDO $db;
 
   public function __construct(DependencyContainer $container) {
    $this->rateLimiter = $container->get(RateLimiter::class);
    $this->cache = $container->get(Cache::class);
    $this->request = $container->get(Request::class);
    $this->dotEnv = $container->get(DotEnv::class);
+   $this->db = $container->get(DatabaseConnection::class)->getPdo();
   }
 
   public function someTest(int $mynum): Response {
@@ -190,5 +194,87 @@ class ExampleController  {
         ], 200);
     }
   }
+
+
+    public function pdoReadTableExample(): Response {
+        try {
+            // Beispiel: Alle Benutzer aus einer users-Tabelle lesen
+            $stmt = $this->db->prepare("SELECT id, username, email, created_at FROM users ORDER BY created_at DESC");
+            $stmt->execute();
+            
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            return (new Response)->json([
+                'status' => 'success',
+                'message' => 'Users retrieved successfully',
+                'data' => $users,
+                'count' => count($users)
+            ], 200);
+            
+        } catch (PDOException $e) {
+            return (new Response)->json([
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function pdoCreateTableExample(): Response {
+        try {
+            // Beispiel: Eine einfache users-Tabelle erstellen
+            $sql = "CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username VARCHAR(50) NOT NULL UNIQUE,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                password_hash VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )";
+            
+            $this->db->exec($sql);
+            
+            // Beispieldaten einfügen (nur wenn Tabelle leer ist)
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM users");
+            $checkStmt->execute();
+            $userCount = $checkStmt->fetchColumn();
+            
+            if ($userCount == 0) {
+                $insertSql = "INSERT INTO users (username, email, password_hash) VALUES 
+                            ('john_doe', 'john@example.com', :password1),
+                            ('jane_smith', 'jane@example.com', :password2),
+                            ('bob_wilson', 'bob@example.com', :password3)";
+                
+                $insertStmt = $this->db->prepare($insertSql);
+                $insertStmt->execute([
+                    ':password1' => password_hash('password123', PASSWORD_DEFAULT),
+                    ':password2' => password_hash('secret456', PASSWORD_DEFAULT),
+                    ':password3' => password_hash('mypass789', PASSWORD_DEFAULT)
+                ]);
+                
+                $insertedRows = $insertStmt->rowCount();
+                
+                return (new Response)->json([
+                    'status' => 'success',
+                    'message' => 'Table created and sample data inserted',
+                    'table_name' => 'users',
+                    'inserted_rows' => $insertedRows
+                ], 201);
+            } else {
+                return (new Response)->json([
+                    'status' => 'success',
+                    'message' => 'Table already exists with data',
+                    'table_name' => 'users',
+                    'existing_rows' => $userCount
+                ], 200);
+            }
+            
+        } catch (PDOException $e) {
+            return (new Response)->json([
+                'status' => 'error',
+                'message' => 'Database error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
 

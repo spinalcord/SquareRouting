@@ -9,6 +9,7 @@ use SquareRouting\Routes\ApplicationRoutes;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
+use SquareRouting\Core\DatabaseConnection;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/errorHandler.php';
@@ -35,6 +36,10 @@ $cache = $container->get(Cache::class);
 
 $container->register(RateLimiter::class,parameters: ['dataFile' => $cacheLocation . "/rate_limit.json"]);
 $rateLimiter = $container->get(RateLimiter::class); 
+
+// Database connection
+$container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => "../app/Database/"]);
+$db = $container->get(DatabaseConnection::class); 
 
 
 ////////////////////////////////////
