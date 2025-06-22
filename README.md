@@ -51,30 +51,22 @@ class ApplicationRoutes implements RoutableInterface
         // Reroute Example
         $route->reroute('/reroute-test', '/google'); // Reroutes to the /google route, which then redirects to Google.com
         
-        // GET Route with a numeric parameter
+        // GET Routes
+        $route->get('/html', ExampleController::class, 'showHtmlPage');
         $route->get('/test/:myid', ExampleController::class, 'someTest', ['myid' => 'num']);
-        
-        // GET Route to show an HTML page
-        $route->get('/html-page', ExampleController::class, 'showHtmlPage');
-
-        // GET Route with a path parameter (can include slashes)
+        $route->get('/redirect-to-google', ExampleController::class, 'redirectToGoogle');
+        $route->get('/rate-limit-example', ExampleController::class, 'rateLimiterExample');
+        $route->get('/cache-example', ExampleController::class, 'cacheExample');
         $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
-
-        // GET Route with a filter
+        $route->get('/dotenv-example', ExampleController::class, 'envExample');
+        $route->get('/pdo-read', ExampleController::class, 'pdoReadTableExample');
+        $route->get('/pdo-create', ExampleController::class, 'pdoCreateTableExample');
         $route->get('/filtertest', ExampleController::class, 'filterTest')
               ->filter([ExampleFilter::class]); // Apply the ExampleFilter to this route
 
-        // POST Route
+        // POST Routes
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');
-
-        // GET Route for .env example
-        $route->get('/env-example', ExampleController::class, 'envExample');
-
-        // POST Route for validation example
         $route->post('/validate-example', ExampleController::class, 'validateExample');
-
-        // Reroute to Google
-        $route->reroute('/google', ExampleController::class, 'redirectToGoogle');
 
         return $route;
     }
