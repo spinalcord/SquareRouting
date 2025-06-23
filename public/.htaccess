@@ -1,0 +1,21 @@
+RewriteEngine On
+
+# CORS Headers
+Header always set Access-Control-Allow-Origin "http://localhost:5173"
+Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+Header always set Access-Control-Allow-Credentials "true"
+
+# Content Security Policy
+Header set Content-Security-Policy "script-src 'self' 'unsafe-inline'; object-src 'none';"
+
+RewriteBase /
+
+# OPTIONS-Anfragen direkt beantworten
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ - [R=200,L]
+
+# Standard Routing
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]

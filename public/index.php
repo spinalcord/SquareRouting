@@ -8,15 +8,20 @@ use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
 use SquareRouting\Core\DatabaseConnection;
+use SquareRouting\Core\CorsMiddleware;
 
 require_once __DIR__ . '/../backend/vendor/autoload.php';
 require __DIR__ . '/errorHandler.php';
 
-
-
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+////////////////////////////////////
+// Cors protection (add your domain to the array)
+////////////////////////////////////
+
+CorsMiddleware::handle([]); 
 
 ////////////////////////////////////
 // SETUP DependencyContainer
