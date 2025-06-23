@@ -5,13 +5,16 @@ A simple yet powerful PHP routing script designed for clarity and flexibility. T
 
 ## Features
 
-*   **Flexible Routing**: Define routes for GET, POST, and even REROUTE (redirection) methods.
+*   **Flexible Routing**: Define routes for GET, POST, and REROUTE (redirection) methods.
 *   **Path Parameters**: Supports dynamic URL segments with predefined patterns (e.g., `num`, `alpha`, `slug`) and a special `:path` parameter for capturing entire sub-paths, including slashes.
 *   **Route Filters**: Apply 'before' and 'after' filters to routes for tasks like authentication, logging, or data manipulation. Filters are classes with `before` and `after` methods that receive the `DependencyContainer`.
 *   **Dependency Injection**: Integrates with a `DependencyContainer` for managing and injecting dependencies into controllers and filters.
 *   **Built-in Rate Limiting**: Protect your endpoints from abuse with an easy-to-use rate limiting mechanism that stores data in a JSON file.
-*   **Simple Caching Mechanism**: Implement basic caching for frequently accessed data to improve performance.
-*   **Response Handling**: Convenient methods for sending JSON, HTML, or performing redirects.
+*   **Built-in Caching Mechanism**: Implement basic caching for frequently accessed data to improve performance.
+*   **Flexible Response Handling**: Convenient methods for sending JSON, HTML, or performing redirects.
+*   **CORS Protection**: Easily configure Cross-Origin Resource Sharing to control access to your resources.
+*   **Input Validation**: Robust validation rules for various data types, including nested and array validation.
+*   **Database Integration (PDO)**: Basic database operations using PDO for seamless interaction with SQL databases.
 
 ## Installation
 
