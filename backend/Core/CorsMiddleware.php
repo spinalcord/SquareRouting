@@ -3,12 +3,15 @@ namespace SquareRouting\Core;
 
 class CorsMiddleware
 {
-    public static function handle(array $allowedOrigins)
+    public static function handle(string $allowedOrigins)
     {
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-        if (empty($allowedOrigins) || in_array($origin, $allowedOrigins)) {
-            header("Access-Control-Allow-Origin: " . (empty($allowedOrigins) ? '*' : $origin));
+        // Den kommagetrennten String in ein Array umwandeln
+        $allowedOriginsArray = array_map('trim', explode(',', $allowedOrigins));
+
+        if (empty($allowedOriginsArray) || in_array($origin, $allowedOriginsArray)) {
+            header("Access-Control-Allow-Origin: " . (empty($allowedOriginsArray) ? '*' : $origin));
         }
 
         header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');

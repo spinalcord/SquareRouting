@@ -28,7 +28,12 @@ This project uses Composer for dependency management.
     ```
 
 ## Usage
+### Cors Protection
+The `CorsMiddleware` class handles Cross-Origin Resource Sharing (CORS) in PHP applications, allowing you to control access to your resources. To use the middleware, open the `.env` file and add a comma-separated string of allowed origins (Or let it empty, to allow all hosts route calls):
 
+```
+ALLOWED_ORIGINS="https://my-domain.com, https://another-example.com"   
+```
 ### Defining Routes
 
 Routes are defined in `app/Routes/ApplicationRoutes.php`. You can add GET, POST, and REROUTE rules.

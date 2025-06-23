@@ -17,11 +17,6 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
-////////////////////////////////////
-// Cors protection (add your domain to the array)
-////////////////////////////////////
-
-CorsMiddleware::handle([]); 
 
 ////////////////////////////////////
 // SETUP DependencyContainer
@@ -47,6 +42,12 @@ $rateLimiter = $container->get(RateLimiter::class);
 $container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => "../backend/Database/"]);
 $db = $container->get(DatabaseConnection::class); 
 
+
+////////////////////////////////////
+// Cors protection (add your domain to the array)
+////////////////////////////////////
+
+CorsMiddleware::handle($dotEnv->get("ALLOWED_ORIGINS")); 
 
 ////////////////////////////////////
 // SETUP Routing
