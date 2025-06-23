@@ -79,7 +79,25 @@ class ApplicationRoutes implements RoutableInterface
 }
 ```
 
+### Route Collection
 
+The `RouteCollector` class is responsible for gathering and merging all defined `Route` instances into a single, comprehensive route collection. This allows for modular route definitions across different files or modules, which are then combined for dispatching. This can be usefull if you implement a plugin system and allow your plugins to have there own routes.
+
+```php
+// public/index.php (Example usage)
+use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\RouteCollector;
+use SquareRouting\Routes\ApplicationRoutes;
+
+$container = new DependencyContainer();
+$collector = new RouteCollector($container);
+
+// Add your application routes
+$collector->add((new ApplicationRoutes())->getRoute($container));
+
+// Dispatch the collected routes
+$collector->dispatch();
+```
 
 ### Controllers
 
