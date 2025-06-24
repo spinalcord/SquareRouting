@@ -46,7 +46,6 @@ $db = $container->get(DatabaseConnection::class);
 ////////////////////////////////////
 // Cors protection (add your domain to the array)
 ////////////////////////////////////
-
 CorsMiddleware::handle($dotEnv->get("ALLOWED_ORIGINS")); 
 
 ////////////////////////////////////
