@@ -514,9 +514,7 @@ The `View` class provides a simple yet powerful PHP-based template engine for re
 
 **Usage Example:**
 
-You have two ways to render a view:
-1. You can return a view via Response (I prefer this way)
-2. You can create an instance of View the you can use the `render` method.
+You can render a view by creating an instance of `View` (which can be injected via the `DependencyContainer`) and then using its `render` method. The output of the `render` method should then be returned as an HTML response.
 
 ```php
 // Example usage in a controller
@@ -527,7 +525,10 @@ use SquareRouting\Core\Response;
 use SquareRouting\Core\View;
 
 class ExampleController {
+    public View $view;
+
     public function __construct(DependencyContainer $container) {
+        $this->view = $container->get(View::class);
     }
 
     public function templateExample(): Response {
@@ -552,8 +553,9 @@ class ExampleController {
             'rawHtml' => '<strong>This is raw HTML!</strong> <script>alert("Test XSS attempt!");</script>',
         ];
 
-        // Render the template and return as HTML response
-        return (new Response)->view("demo.tpl", $data);
+        $this->view->setMultiple($data);
+        $output = $this->view->render("demo.tpl");
+        return (new Response)->html($output);
     }
 }
 ```
