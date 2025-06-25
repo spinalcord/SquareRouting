@@ -22,11 +22,14 @@ if (session_status() == PHP_SESSION_NONE) {
 ////////////////////////////////////
 // SETUP DependencyContainer
 ////////////////////////////////////
+$envFileLocation =__DIR__ . '/../backend/Configs/.env';
 $cacheLocation =__DIR__ . "/../backend/Cache";
-
+$templateLocation =__DIR__ . "/../backend/Templates/";
+$sqliteFileLocation = __DIR__ . "/../backend/Database/";
+$rateLimitTempFileLocation = $cacheLocation . "/rate_limit.json";
 $container = new DependencyContainer();
 
-$container->register(DotEnv::class, parameters: ['path' => __DIR__ . '/../backend/Configs/.env' ]);
+$container->register(DotEnv::class, parameters: ['path' => $envFileLocation ]);
 $dotEnv = $container->get(DotEnv::class); 
 
 $container->register(Request::class);
@@ -36,12 +39,15 @@ $container->register(Cache::class, parameters:
     ['cacheDir' => $cacheLocation, '$defaultTtl' => 3600]);
 $cache = $container->get(Cache::class);
 
-$container->register(RateLimiter::class,parameters: ['dataFile' => $cacheLocation . "/rate_limit.json"]);
+$container->register(RateLimiter::class,parameters: ['dataFile' => $rateLimitTempFileLocation]);
 $rateLimiter = $container->get(RateLimiter::class); 
 
 // Database connection
-$container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => "../backend/Database/"]);
+$container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation ]);
 $db = $container->get(DatabaseConnection::class); 
+
+$container->register(View::class, parameters: ['templateDir' => $templateLocation  , 'cacheDir' =>  $cacheLocation]);
+$view = $container->get(View::class); 
 
 ////////////////////////////////////
 // Cors protection (add your domain to the array)

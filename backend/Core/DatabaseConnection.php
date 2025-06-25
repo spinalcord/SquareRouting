@@ -16,14 +16,12 @@ class DatabaseConnection
     public function __construct(DotEnv $dotEnv, string $sqlitePath = "")
     {
         $dbType = $dotEnv->get('DB_CONNECTION', 'mysql');
-        $host = $dotEnv->get('DB_HOST');
-        $port = $dotEnv->get('DB_PORT');
-        $database = $dotEnv->get('DB_DATABASE');
-        $username = $dotEnv->get('DB_USERNAME');
-        $password = $dotEnv->get('DB_PASSWORD');
-        $dsn = $this->buildDsn($dbType, $host, $port, $sqlitePath, $database);
+        $dsn = $this->buildDsn($dbType, $dotEnv, $sqlitePath);
 
         try {
+            $username = $dotEnv->get('DB_USERNAME');
+            $password = $dotEnv->get('DB_PASSWORD');
+            
             $this->pdo = new PDO($dsn, $username, $password);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
@@ -32,54 +30,82 @@ class DatabaseConnection
         }
     }
 
-    private function buildDsn(string $dbType, ?string $host, ?string $port, ?string $sqlitePath, ?string $database): string
+    private function buildDsn(string $dbType, DotEnv $dotEnv, string $sqlitePath): string
     {
         switch (strtolower($dbType)) {
             case 'mysql':
-                if (!$host || !$database) {
-                    throw new InvalidArgumentException("MySQL connection requires DB_HOST and DB_DATABASE.");
-                }
-                $dsn = "mysql:host={$host};dbname={$database}";
-                if ($port) {
-                    $dsn .= ";port={$port}";
-                }
-                return $dsn;
+                return $this->buildMysqlDsn($dotEnv);
             case 'sqlite':
-                if (!$database) {
-                    throw new InvalidArgumentException("SQLite connection requires DB_DATABASE (path to file).");
-                }
-
-                $fullDbPath = $database;
-
-                // Normalize sqlitePath if provided
-                if (!empty($sqlitePath)) {
-                    // Remove leading slash
-                    if (str_starts_with($sqlitePath, '/')) {
-                        $sqlitePath = substr($sqlitePath, 1);
-                    }
-                    // Add trailing slash if missing
-                    if (!str_ends_with($sqlitePath, '/')) {
-                        $sqlitePath .= '/';
-                    }
-
-                    // Create directory if it doesn't exist
-                    if (!is_dir($sqlitePath)) {
-                        if (!mkdir($sqlitePath, 0777, true) && !is_dir($sqlitePath)) {
-                            throw new RuntimeException(sprintf('Directory "%s" was not created', $sqlitePath));
-                        }
-                    }
-                    $fullDbPath = $sqlitePath . $database;
-                }
-
-                // Ensure .db extension is only added if not already present in $database
-                if (!str_ends_with(strtolower($fullDbPath), '.db')) {
-                    $fullDbPath .= '.db';
-                }
-
-                return "sqlite:{$fullDbPath}";
+                return $this->buildSqliteDsn($dotEnv, $sqlitePath);
             default:
                 throw new InvalidArgumentException("Unsupported database type: {$dbType}. Supported types are 'mysql' and 'sqlite'.");
         }
+    }
+
+    private function buildMysqlDsn(DotEnv $dotEnv): string
+    {
+        $host = $dotEnv->get('DB_HOST');
+        $database = $dotEnv->get('DB_DATABASE');
+        $port = $dotEnv->get('DB_PORT');
+
+        if (!$host || !$database) {
+            throw new InvalidArgumentException("MySQL connection requires DB_HOST and DB_DATABASE.");
+        }
+
+        $dsn = "mysql:host={$host};dbname={$database}";
+        if ($port) {
+            $dsn .= ";port={$port}";
+        }
+
+        return $dsn;
+    }
+
+    private function buildSqliteDsn(DotEnv $dotEnv, string $sqlitePath): string
+    {
+        $database = $dotEnv->get('DB_DATABASE');
+        if (!$database) {
+            throw new InvalidArgumentException("SQLite connection requires DB_DATABASE (path to file).");
+        }
+
+        if (!empty($sqlitePath)) {
+            if (!$this->isAbsolutePath($sqlitePath)) {
+                $projectRoot = dirname(dirname(__DIR__));
+                $sqlitePath = $projectRoot . DIRECTORY_SEPARATOR . $sqlitePath;
+            }
+            
+            if (!str_ends_with($sqlitePath, DIRECTORY_SEPARATOR)) {
+                $sqlitePath .= DIRECTORY_SEPARATOR;
+            }
+            
+            if (!is_dir($sqlitePath) && !mkdir($sqlitePath, 0777, true)) {
+                throw new RuntimeException("Could not create directory: {$sqlitePath}");
+            }
+            
+            $database = $sqlitePath . $database;
+        } else {
+            if (!$this->isAbsolutePath($database)) {
+                $projectRoot = dirname(dirname(__DIR__));
+                $database = $projectRoot . DIRECTORY_SEPARATOR . $database;
+            }
+        }
+
+        if (!str_ends_with(strtolower($database), '.db')) {
+            $database .= '.db';
+        }
+
+        if (empty($sqlitePath)) {
+            $directory = dirname($database);
+            if (!is_dir($directory) && !mkdir($directory, 0777, true)) {
+                throw new RuntimeException("Could not create directory: {$directory}");
+            }
+        }
+
+        return "sqlite:{$database}";
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:\\\\/', $path);
     }
 
     public function getPdo(): PDO

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 namespace SquareRouting\Core;
 use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 /**
  * Modern Template Engine for PHP 8.3+
  * A lightweight, secure template engine with modern PHP features
@@ -26,7 +28,7 @@ class View
     /**
      * Assign a variable to the template
      */
-    public function assign(string $key, mixed $value): self
+    public function set(string $key, mixed $value): self
     {
         $this->variables[$key] = $value;
         return $this;
@@ -34,8 +36,9 @@ class View
 
     /**
      * Assign multiple variables at once
+     * @param array<int,mixed> $variables
      */
-    public function assignMultiple(array $variables): self
+    public function setMultiple(array $variables): self
     {
         $this->variables = array_merge($this->variables, $variables);
         return $this;
@@ -52,10 +55,11 @@ class View
 
     /**
      * Render template and return content
+     * @param array<int,mixed> $variables
      */
     public function render(string $template, array $variables = []): string
     {
-        $this->assignMultiple($variables);
+        $this->setMultiple($variables);
         
         $templateFile = $this->templateDirectory . $template;
         
@@ -85,6 +89,7 @@ class View
 
     /**
      * Render template directly to output
+     * @param array<int,mixed> $variables
      */
     public function display(string $template, array $variables = []): void
     {

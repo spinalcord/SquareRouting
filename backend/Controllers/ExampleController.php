@@ -26,6 +26,7 @@ class ExampleController  {
   public Cache $cache;
   public DotEnv $dotEnv;
   private PDO $db;
+  public View $view;
 
   public function __construct(DependencyContainer $container) {
    $this->rateLimiter = $container->get(RateLimiter::class);
@@ -33,6 +34,7 @@ class ExampleController  {
    $this->request = $container->get(Request::class);
    $this->dotEnv = $container->get(DotEnv::class);
    $this->db = $container->get(DatabaseConnection::class)->getPdo();
+   $this->view = $container->get(View::class);
   }
 
   public function someTest(int $mynum): Response {
@@ -280,30 +282,31 @@ class ExampleController  {
     }
 
 
-public function templateExample(): Response {
-    $data = [
-        'pageTitle' => 'Template Engine Example',
-        'greeting' => 'Hello',
-        'userName' => 'World',
-        'currentYear' => date('Y'),
-        'currentTime' => date('H:i:s'),
-        'features' => [
-            ['name' => 'Variables', 'description' => 'Dynamic content display'],
-            ['name' => 'Loops', 'description' => 'Iterating over data collections'],
-            ['name' => 'Conditionals', 'description' => 'Displaying content based on logic'],
-            ['name' => 'Includes', 'description' => 'Reusing template partials'],
-            ['name' => 'Translations', 'description' => 'Multilingual support'],
-            ['name' => 'Events', 'description' => 'Injecting dynamic content via callbacks'],
-            ['name' => 'Caching', 'description' => 'Improved performance'],
-            ['name' => 'Auto-escaping', 'description' => 'XSS protection by default'],
-        ],
-        'isAdmin' => true,
-        'showExtraContent' => true,
-        'rawHtml' => '<strong>This is raw HTML!</strong> <script>alert("Test XSS attempt!");</script>',
-    ];
+    public function templateExample(): Response {
+        $data = [
+            'pageTitle' => 'Template Engine Example',
+            'greeting' => 'Hello',
+            'userName' => 'World',
+            'currentYear' => date('Y'),
+            'currentTime' => date('H:i:s'),
+            'features' => [
+                ['name' => 'Variables', 'description' => 'Dynamic content display'],
+                ['name' => 'Loops', 'description' => 'Iterating over data collections'],
+                ['name' => 'Conditionals', 'description' => 'Displaying content based on logic'],
+                ['name' => 'Includes', 'description' => 'Reusing template partials'],
+                ['name' => 'Translations', 'description' => 'Multilingual support'],
+                ['name' => 'Events', 'description' => 'Injecting dynamic content via callbacks'],
+                ['name' => 'Caching', 'description' => 'Improved performance'],
+                ['name' => 'Auto-escaping', 'description' => 'XSS protection by default'],
+            ],
+            'isAdmin' => true,
+            'showExtraContent' => true,
+            'rawHtml' => '<strong>This is raw HTML!</strong> <script>alert("Test XSS attempt!");</script>',
+        ];
 
-    // Render the template and return as HTML response
-    return (new Response)->view("demo.tpl", $data);
-}
+        $this->view->setMultiple($data);;
+        $output = $this->view->render("demo.tpl");
+        return (new Response)->html($output);
+    }
 }
 
