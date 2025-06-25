@@ -282,7 +282,7 @@ class ExampleController  {
 
 public function templateExample(): Response {
     $data = [
-        'pageTitle' => 'Modern Template Engine Example',
+        'pageTitle' => 'Template Engine Example',
         'greeting' => 'Hello',
         'userName' => 'World',
         'currentYear' => date('Y'),

@@ -502,7 +502,112 @@ class ExampleController {
 
 ### View (Template Engine) Example
 
-Working but readme is not complete yet.
+The `View` class provides a simple yet powerful PHP-based template engine for rendering dynamic HTML views. It supports variable interpolation, loops (foreach), conditional statements (if/else), and inclusion of partial templates. The engine also includes a built-in caching mechanism to improve performance by storing compiled templates. 
+
+**Key Features:**
+*   **Variable Interpolation**: Display dynamic data using `{$variableName}`.
+*   **Loops**: Iterate over arrays or objects with `{foreach $collection as $item}`.
+*   **Conditionals**: Render content conditionally using `{if $condition}` and `{else}`.
+*   **Partial Includes**: Reuse template parts with `{include "partial_template.tpl"}`.
+*   **Raw Output**: Prevent HTML escaping for raw HTML content using `{$variable|raw}`.
+*   **Caching**: Automatically caches compiled templates for faster rendering.
+
+**Usage Example:**
+
+You have two ways to render a view:
+1. You can return a view via Response (I prefer this way)
+2. You can create an instance of View the you can use the `render` method.
+
+```php
+// Example usage in a controller
+namespace SquareRouting\Controllers;
+
+use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\Response;
+use SquareRouting\Core\View;
+
+class ExampleController {
+    public function __construct(DependencyContainer $container) {
+    }
+
+    public function templateExample(): Response {
+        $data = [
+            'pageTitle' => 'Template Engine Example',
+            'greeting' => 'Hello',
+            'userName' => 'World',
+            'currentYear' => date('Y'),
+            'currentTime' => date('H:i:s'),
+            'features' => [
+                ['name' => 'Variables', 'description' => 'Dynamic content display'],
+                ['name' => 'Loops', 'description' => 'Iterating over data collections'],
+                ['name' => 'Conditionals', 'description' => 'Displaying content based on logic'],
+                ['name' => 'Includes', 'description' => 'Reusing template partials'],
+                ['name' => 'Translations', 'description' => 'Multilingual support'],
+                ['name' => 'Events', 'description' => 'Injecting dynamic content via callbacks'],
+                ['name' => 'Caching', 'description' => 'Improved performance'],
+                ['name' => 'Auto-escaping', 'description' => 'XSS protection by default'],
+            ],
+            'isAdmin' => true,
+            'showExtraContent' => true,
+            'rawHtml' => '<strong>This is raw HTML!</strong> <script>alert("Test XSS attempt!");</script>',
+        ];
+
+        // Render the template and return as HTML response
+        return (new Response)->view("demo.tpl", $data);
+    }
+}
+```
+
+**`backend/Templates/demo.tpl` content:**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{$pageTitle}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1, h2 { color: #0056b3; }
+        ul { list-style-type: none; padding: 0; }
+        li { background-color: #e9e9e9; margin-bottom: 5px; padding: 10px; border-radius: 4px; }
+        .highlight { color: green; font-weight: bold; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{$greeting}, {$userName}!</h1>
+
+        <ul>
+            {foreach $features as $feature}
+                <li>{$feature.name}: {$feature.description}</li>
+            {/foreach}
+        </ul>
+
+        <h2>Conditional Content</h2>
+        {if $isAdmin == true}
+            <p class="highlight">You are an administrator. Access granted to sensitive content.</p>
+        {else}
+            <p class="error">You are a regular user. Some content is restricted.</p>
+        {/if}
+
+
+        {if $showExtraContent}
+            <p>This content is only shown if 'showExtraContent' is true.</p>
+        {/if}
+
+        <h2>Included Content</h2>
+        {include "partial_info.tpl"}
+
+        <h2>Raw Variable Example</h2>
+        <p>Raw HTML (not escaped): {$rawHtml|raw}</p>
+    </div>
+</body>
+</html>
+```
 
 
 ### Running the Application
