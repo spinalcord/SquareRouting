@@ -15,6 +15,7 @@ A simple yet powerful PHP routing script designed for clarity and flexibility. T
 *   **CORS Protection**: Easily configure Cross-Origin Resource Sharing to control access to your resources.
 *   **Input Validation**: Robust validation rules for various data types, including nested and array validation.
 *   **Database Integration (PDO)**: Basic database operations using PDO for seamless interaction with SQL databases.
+*   **Template Engine**: Simple PHP-based template engine for rendering dynamic HTML views with built-in caching.
 
 ## Installation
 
@@ -497,6 +498,12 @@ class ExampleController {
     }
 }
 ```
+
+
+### View (Template Engine) Example
+
+Working but readme is not complete yet.
+
 
 ### Running the Application
 

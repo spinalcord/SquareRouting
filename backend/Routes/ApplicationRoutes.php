@@ -34,6 +34,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/filtertest', ExampleController::class, 'filterTest')
               ->filter([ExampleFilter::class]);
 
+        $route->get('/template-example', ExampleController::class, 'templateExample');
         // Post Example
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');
 

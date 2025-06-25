@@ -1,6 +1,8 @@
 <?php
 namespace SquareRouting\Controllers;
 
+use PDOException;
+use SquareRouting\Core\View;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Request;
@@ -277,5 +279,31 @@ class ExampleController  {
         }
     }
 
+
+public function templateExample(): Response {
+    $data = [
+        'pageTitle' => 'Modern Template Engine Example',
+        'greeting' => 'Hello',
+        'userName' => 'World',
+        'currentYear' => date('Y'),
+        'currentTime' => date('H:i:s'),
+        'features' => [
+            ['name' => 'Variables', 'description' => 'Dynamic content display'],
+            ['name' => 'Loops', 'description' => 'Iterating over data collections'],
+            ['name' => 'Conditionals', 'description' => 'Displaying content based on logic'],
+            ['name' => 'Includes', 'description' => 'Reusing template partials'],
+            ['name' => 'Translations', 'description' => 'Multilingual support'],
+            ['name' => 'Events', 'description' => 'Injecting dynamic content via callbacks'],
+            ['name' => 'Caching', 'description' => 'Improved performance'],
+            ['name' => 'Auto-escaping', 'description' => 'XSS protection by default'],
+        ],
+        'isAdmin' => true,
+        'showExtraContent' => true,
+        'rawHtml' => '<strong>This is raw HTML!</strong> <script>alert("Test XSS attempt!");</script>',
+    ];
+
+    // Render the template and return as HTML response
+    return (new Response)->view("demo.tpl", $data);
+}
 }
 

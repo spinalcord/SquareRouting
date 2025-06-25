@@ -9,6 +9,7 @@ use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
 use SquareRouting\Core\DatabaseConnection;
 use SquareRouting\Core\CorsMiddleware;
+use SquareRouting\Core\View;
 
 require_once __DIR__ . '/../backend/vendor/autoload.php';
 require __DIR__ . '/errorHandler.php';

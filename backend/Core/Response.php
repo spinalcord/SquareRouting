@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace SquareRouting\Core;
 
+use SquareRouting\Core\View;
+
 class Response {
     private int $status = 200;
     private array $headers = [];
@@ -116,5 +118,31 @@ class Response {
 
         // Send the body
         echo $this->body;
+    }
+
+    public function view(string $template, array $data, int $status = 200): self
+    {
+        $view = new View(__DIR__. '/../Templates/', __DIR__ .'/../Cache/');
+        // Optional: Clear cache for development
+        $view->clearCache();
+
+        // Optional: Disable caching for development
+        $view->setCaching(false);
+
+        $this->status = $status;
+        $this->setHeader('Content-Type', 'text/html');
+
+
+
+        try {
+            $this->body = $view->render($template, $data);
+        } catch (\Exception $e) {
+            // Log the error and return an error response
+            error_log("View rendering error: " . $e->getMessage());
+            $this->body = "An error occurred while rendering the view: " . $e->getMessage();
+            $this->status = 500;
+        }
+        
+        return $this;
     }
 }
