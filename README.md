@@ -1,7 +1,31 @@
 ![](logo.jpg)
 # SquareRouting
 
-A powerful PHP MVC micro framework designed for clarity and flexibility. The best part: it's incredibly fast 🔥🔥. This project provides a robust foundation for building web applications with clean URL structures, route parameters, and essential features like rate limiting and caching and damn even a account system!
+SquareRouting is a powerful, fast, and flexible PHP MVC micro-framework designed to provide a robust foundation for building web applications. It emphasizes clean URL structures, efficient routing, and includes essential features like rate limiting, caching, and a built-in account system.
+
+## Table of Contents
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+    - [Core Concepts](#core-concepts)
+        - [Defining Routes](#defining-routes)
+        - [Route Collection](#route-collection)
+        - [Controllers](#controllers)
+        - [Route Filters](#route-filters)
+    - [Built-in Features](#built-in-features)
+        - [CORS Protection](#cors-protection)
+        - [Caching](#caching)
+        - [Rate Limiting](#rate-limiting)
+        - [Environment Variables (.env)](#environment-variables-env)
+        - [Input Validation](#input-validation)
+        - [Database Operations](#database-operations)
+        - [Account System](#account-system)
+        - [Template Engine (Views)](#template-engine-views)
+    - [Response Handling](#response-handling)
+        - [HTML Page Example](#html-page-example)
+        - [Redirection Example](#redirection-example)
+- [Running the Application](#running-the-application)
+- [License](#license)
 
 ## Features
 
@@ -32,13 +56,10 @@ This project uses Composer for dependency management.
     ```
 
 ## Usage
-### Cors Protection
-The `CorsMiddleware` class handles Cross-Origin Resource Sharing (CORS) in PHP applications, allowing you to control access to your resources. To use the middleware, open the `.env` file and add a comma-separated string of allowed origins (Or let it empty, to allow all hosts route calls):
 
-```
-ALLOWED_ORIGINS="https://my-domain.com, https://another-example.com"   
-```
-### Defining Routes
+### Core Concepts
+
+#### Defining Routes
 
 Routes are defined in `app/Routes/ApplicationRoutes.php`. You can add GET, POST, and REROUTE rules.
 
@@ -76,9 +97,9 @@ class ApplicationRoutes implements RoutableInterface
 }
 ```
 
-### Route Collection
+#### Route Collection
 
-The `RouteCollector` class is responsible for gathering and merging all defined `Route` instances into a single, comprehensive route collection. This allows for modular route definitions across different files or modules, which are then combined for dispatching. This can be usefull if you implement a plugin system and allow your plugins to have there own routes.
+The `RouteCollector` class is responsible for gathering and merging all defined `Route` instances into a single, comprehensive route collection. This allows for modular route definitions across different files or modules, which are then combined for dispatching. This can be useful if you implement a plugin system and allow your plugins to have their own routes.
 
 ```php
 // public/index.php (Example usage)
@@ -96,12 +117,12 @@ $collector->add((new ApplicationRoutes())->getRoute($container));
 $collector->dispatch();
 ```
 
-### Controllers
+#### Controllers
 
 Controllers handle the logic for your routes. They receive the `DependencyContainer` in their constructor.
 
 ```php
-// app/Controllers/ExampleController.php
+// backend/Controllers/ExampleController.php
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\DependencyContainer;
@@ -121,15 +142,14 @@ class ExampleController {
     return (new Response)->json($data, 200);
   }
 }
-
-
 ```
 
-### Route Filters
-This is idea comes from Lightpack MVC. Filters allow you to execute code before and after a route is processed. They are defined as classes with `before` and `after` methods.
+#### Route Filters
+
+Filters allow you to execute code before and after a route is processed. They are defined as classes with `before` and `after` methods.
 
 ```php
-// app/Filters/ExampleFilter.php
+// backend/Filters/ExampleFilter.php
 namespace SquareRouting\Filters;
 
 use SquareRouting\Core\DependencyContainer;
@@ -155,7 +175,7 @@ $route->get('/filtertest', ExampleController::class, 'filterTest')
       ->filter([ExampleFilter::class]); // Apply the ExampleFilter to this route
 ```
 
-After that a filter will executed before and after the specific get method.
+After that, a filter will be executed before and after the specific get method.
 
 ```php
 // backend/Controllers/ExampleController.php
@@ -172,8 +192,17 @@ class ExampleController {
 }
 ```
 
+### Built-in Features
 
-### Caching
+#### CORS Protection
+
+The `CorsMiddleware` class handles Cross-Origin Resource Sharing (CORS) in PHP applications, allowing you to control access to your resources. To use the middleware, open the `.env` file and add a comma-separated string of allowed origins (or leave it empty to allow all hosts route calls):
+
+```
+ALLOWED_ORIGINS="https://my-domain.com, https://another-example.com"
+```
+
+#### Caching
 
 The `Cache` class provides a simple mechanism for caching data. You can retrieve, store, delete, and clear cached items.
 
@@ -200,43 +229,9 @@ class ExampleController {
 }
 ```
 
-### HTML Page Example
+#### Rate Limiting
 
-The `showHtmlPage` method demonstrates how to return a simple HTML response.
-
-```php
-// app/Controllers/ExampleController.php
-class ExampleController {
-    // ...
-    public function showHtmlPage(): Response {
-        $html = "<h1>Hello World!</h1><p>This is an HTML page.</p>
-                 <form action=\"/post-example\" method=\"POST\">
-                     <button type=\"submit\">Send POST Request</button>
-                 </form>";
-        return (new Response)->html($html);
-    }
-    // ...
-}
-```
-
-### Redirection Example
-
-The `redirectToGoogle` method shows how to perform a redirection to an external URL.
-
-```php
-// app/Controllers/ExampleController.php
-class ExampleController {
-    // ...
-    public function redirectToGoogle(): Response {
-        return (new Response)->reroute('https://www.google.com');
-    }
-    // ...
-}
-```
-
-### Rate Limiting Example
-
-The `rateLimiterExample` method demonstrates how to use the built-in `RateLimiter` to protect your endpoints from excessive requests.
+The `RateLimiter` class demonstrates how to use the built-in `RateLimiter` to protect your endpoints from excessive requests.
 
 ```php
 // backend/Controllers/ExampleController.php
@@ -265,12 +260,14 @@ class ExampleController {
 }
 ```
 
-### .env Example
+#### Environment Variables (.env)
 
-The `envExample` method demonstrates how to access environment variables defined in the `.env` file using the `DotEnv` class.
+The `DotEnv` class demonstrates how to access environment variables defined in the `.env` file.
 
 ```php
-// app/Controllers/ExampleController.php
+// backend/Controllers/ExampleController.php
+use SquareRouting\Core\DotEnv;
+
 class ExampleController {
     public DotEnv $dotEnv;
 
@@ -285,9 +282,9 @@ class ExampleController {
 }
 ```
 
-### Validation Example
+#### Input Validation
 
-The `validateExample` method showcases the use of the `Validator` class for input validation, including required fields, minimum/maximum lengths, `in` rule, nested validation, array validation, and JSON validation.
+The `Validator` class showcases the use of input validation, including required fields, minimum/maximum lengths, `in` rule, nested validation, array validation, and JSON validation.
 
 ```php
 // backend/Controllers/ExampleController.php
@@ -325,9 +322,9 @@ class ExampleController {
 }
 ```
 
-### Database Examples (Using `Database` Class)
+#### Database Operations
 
-The `ExampleController` includes a concise `databaseExamples` method that demonstrates core database operations using the custom `Database` class, including creating tables, inserting, selecting, updating, deleting, and managing transactions.
+The `Database` class demonstrates core database operations, including creating tables, inserting, selecting, updating, deleting, and managing transactions.
 
 ```php
 // backend/Controllers/ExampleController.php
@@ -419,10 +416,136 @@ class ExampleController
 }
 ```
 
+#### Account System
 
-### View (Template Engine) Example
+The `AuthenticationController` includes an `accountExample` method that demonstrates the usage of the built-in account system, including user registration, login, checking login status, and logout. It also shows how rate limiting can be applied to account operations.
 
-The `View` class provides a simple yet powerful PHP-based (Twig-like) template engine for rendering dynamic HTML views. It supports variable interpolation, loops (foreach), conditional statements (if/else), and inclusion of partial templates. The engine also includes a built-in caching mechanism to improve performance by storing compiled templates. And the best part is: it is fast!
+```php
+// backend/Controllers/AuthenticationController.php
+namespace SquareRouting\Controllers;
+
+use SquareRouting\Core\View;
+use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\Request;
+use SquareRouting\Core\Response;
+use SquareRouting\Core\RateLimiter;
+use SquareRouting\Core\Account;
+
+class AuthenticationController {
+  public Request $request;
+  public RateLimiter $rateLimiter;
+  public View $view;
+  public Account $account;
+
+  public function __construct(DependencyContainer $container) {
+   $this->rateLimiter = $container->get(RateLimiter::class);
+   $this->request = $container->get(Request::class);
+   $this->view = $container->get(View::class);
+   $this->account = $container->get(Account::class);
+  }
+
+  public function accountExample(): Response {
+      $messages = [];
+      $isLoggedIn = false;
+      $currentUser = null;
+
+      $clientId = $this->request->getClientIp(); // Get client IP address
+      $key = 'account_operations'; // Define a key for account operations
+
+      // Set rate limit: 5 attempts per 60 seconds for account operations
+      $this->rateLimiter->setLimit($key, 5, 60);
+
+      if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
+          $remainingTime = $this->rateLimiter->getRemainingTimeToReset($key, $clientId);
+          return (new Response)->json(['status' => 'error', 'message' => 'Rate limit exceeded for account operations. Try again in ' . $remainingTime . ' seconds.'], 429);
+      }
+
+      $this->rateLimiter->registerAttempt($key, $clientId);
+      $remainingAttempts = $this->rateLimiter->getRemainingAttempts($key, $clientId);
+      $messages[] = "Remaining account operation attempts: " . $remainingAttempts;
+
+      // 1. Attempt to register a new user
+      $testEmail = 'test_user_' . uniqid() . '@example.com';
+      $testPassword = 'Password123';
+      try {
+          $registered = $this->account->register($testEmail, $testPassword, ['first_name' => 'Test', 'last_name' => 'User']);
+          if ($registered) {
+              $messages[] = "User '{$testEmail}' registered successfully.";
+          } else {
+              $messages[] = "Failed to register user '{$testEmail}'.";
+          }
+      } catch (\InvalidArgumentException $e) {
+          $messages[] = "Registration failed: " . $e->getMessage();
+      } catch (\RuntimeException $e) {
+          $messages[] = "Registration runtime error: " . $e->getMessage();
+      }
+
+      // 2. Attempt to log in the newly registered user
+      try {
+          $loggedIn = $this->account->login($testEmail, $testPassword);
+          if ($loggedIn) {
+              $messages[] = "User '{$testEmail}' logged in successfully.";
+          } else {
+              $messages[] = "Failed to log in user '{$testEmail}'.";
+          }
+      } catch (\InvalidArgumentException $e) {
+          $messages[] = "Login failed: " . $e->getMessage();
+      } catch (\RuntimeException $e) {
+          $messages[] = "Login runtime error: " . $e->getMessage();
+      }
+
+      // 3. Check if user is logged in
+      $isLoggedIn = $this->account->isLoggedIn();
+      if ($isLoggedIn) {
+          $messages[] = "User is currently logged in.";
+          $currentUser = $this->account->getCurrentUser();
+          if ($currentUser) {
+              $messages[] = "Current user: " . ($currentUser['email'] ?? 'N/A');
+          }
+      } else {
+          $messages[] = "User is not logged in.";
+      }
+
+      // 4. Attempt to log out
+      if ($isLoggedIn) {
+          try {
+              $loggedOut = $this->account->logout();
+              if ($loggedOut) {
+                  $messages[] = "User logged out successfully.";
+              } else {
+                  $messages[] = "Failed to log out user.";
+              }
+          } catch (\Exception $e) {
+              $messages[] = "Logout failed: " . $e->getMessage();
+          }
+      }
+
+      // Re-check login status after logout
+      $isLoggedInAfterLogout = $this->account->isLoggedIn();
+      if (!$isLoggedInAfterLogout) {
+          $messages[] = "User is confirmed logged out.";
+      } else {
+          $messages[] = "User is still logged in after logout attempt (unexpected).";
+      }
+
+
+      $data = [
+          'pageTitle' => 'Account Example',
+          'messages' => $messages,
+          'isLoggedIn' => $isLoggedIn,
+          'currentUser' => $currentUser,
+      ];
+
+      $this->view->setMultiple($data);
+      $output = $this->view->render("account_example.tpl");
+      return (new Response)->html($output);
+  }
+}
+```
+
+#### Template Engine (Views)
+
+The `View` class provides a simple yet powerful PHP-based (Twig-like) template engine for rendering dynamic HTML views. It supports variable interpolation, loops (foreach), conditional statements (if/else), and inclusion of partial templates. The engine also includes a built-in caching mechanism to improve performance by storing compiled templates.
 
 **Key Features:**
 *   **Control Structures**: Use `{% control structure %}` for logic (e.g., `if`, `foreach`, `while`).
@@ -491,8 +614,43 @@ class ExampleController {
 </html>
 ```
 
+### Response Handling
 
-### Running the Application
+#### HTML Page Example
+
+The `showHtmlPage` method demonstrates how to return a simple HTML response.
+
+```php
+// backend/Controllers/ExampleController.php
+class ExampleController {
+    // ...
+    public function showHtmlPage(): Response {
+        $html = "<h1>Hello World!</h1><p>This is an HTML page.</p>
+                 <form action=\"/post-example\" method=\"POST\">
+                     <button type=\"submit\">Send POST Request</button>
+                 </form>";
+        return (new Response)->html($html);
+    }
+    // ...
+}
+```
+
+#### Redirection Example
+
+The `redirectToGoogle` method shows how to perform a redirection to an external URL.
+
+```php
+// backend/Controllers/ExampleController.php
+class ExampleController {
+    // ...
+    public function redirectToGoogle(): Response {
+        return (new Response)->reroute('https://www.google.com');
+    }
+    // ...
+}
+```
+
+## Running the Application
 
 You can use a PHP development server to run the application:
 
