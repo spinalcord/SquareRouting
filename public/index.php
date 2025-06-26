@@ -57,7 +57,8 @@ $account = $container->get(Account::class);
 ////////////////////////////////////
 // Cors protection (add your domain to the array)
 ////////////////////////////////////
-CorsMiddleware::handle($dotEnv->get("ALLOWED_ORIGINS")); 
+$corsMiddleware = new CorsMiddleware();
+$corsMiddleware->handle($dotEnv->get("ALLOWED_ORIGINS"));
 
 ////////////////////////////////////
 // SETUP Routing

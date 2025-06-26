@@ -31,14 +31,15 @@ final class DotEnv
     ) {
     }
 
-    /**
-     * Static factory method for a more fluent interface.
-     */
+    /*
+    //Static factory method for a more fluent interface.
     public static function create(string $path): self
     {
         return new self($path);
     }
+    */
 
+    
     /**
      * Retrieves an environment variable by its key.
      *

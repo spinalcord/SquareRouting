@@ -3,7 +3,7 @@ namespace SquareRouting\Core;
 
 class CorsMiddleware
 {
-    public static function handle(string $allowedOrigins)
+    public function handle(string $allowedOrigins)
     {
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
         
@@ -19,8 +19,8 @@ class CorsMiddleware
             );
             
             // URLs normalisieren (trailing slash entfernen)
-            $allowedOriginsArray = array_map([self::class, 'normalizeUrl'], $allowedOriginsArray);
-            $normalizedOrigin = self::normalizeUrl($origin);
+            $allowedOriginsArray = array_map([$this, 'normalizeUrl'], $allowedOriginsArray);
+            $normalizedOrigin = $this->normalizeUrl($origin);
             
             if (in_array($normalizedOrigin, $allowedOriginsArray)) {
                 header("Access-Control-Allow-Origin: " . $origin);
@@ -46,7 +46,7 @@ class CorsMiddleware
      * - Konvertiert zu lowercase (für Domain-Teil)
      * - Behält den ursprünglichen Pfad bei
      */
-    private static function normalizeUrl(string $url): string
+    private function normalizeUrl(string $url): string
     {
         if (empty($url)) {
             return $url;
