@@ -157,8 +157,17 @@ class ExampleController  {
     return (new Response)->html("The .env value is: ".$testValue);
   }
 
+  public function showValidatorExample(): Response {
+    $data = [
+        'pageTitle' => 'Validator Example Form',
+    ];
+    $this->view->setMultiple($data);
+    $output = $this->view->render("validator_example.tpl");
+    return (new Response)->html($output);
+  }
+
   public function validateExample(): Response {
-    $data = $this->request->post(); 
+    $data = $this->request->json();
 
     // 2. The rules for the data
     $rules = [
@@ -181,7 +190,7 @@ class ExampleController  {
     ];
 
     // 3. Create a validator instance and run it
-    $validator = Validator::make($data, $rules);
+    $validator = new Validator($data, $rules);
 
     if ($validator->fails()) {
         return (new Response)->json([

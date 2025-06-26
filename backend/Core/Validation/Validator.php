@@ -9,7 +9,7 @@ namespace SquareRouting\Core\Validation;
  *
  * Supports nested data and array validation using dot notation.
  */
-final readonly class Validator
+final class Validator
 {
     private array $errors;
     private array $validatedData;
@@ -28,13 +28,6 @@ final readonly class Validator
         $this->expandedRules = $this->expandRules($this->rules, $this->data);
     }
 
-    /**
-     * Static factory method for a more fluent interface.
-     */
-    public static function make(array $data, array $rules): self
-    {
-        return new self($data, $rules);
-    }
 
     /**
      * Runs the validation process.

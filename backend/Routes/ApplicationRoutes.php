@@ -28,6 +28,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/redirect-to-google', ExampleController::class, 'redirectToGoogle');
         $route->get('/rate-limit-example', ExampleController::class, 'rateLimiterExample');
         $route->get('/cache-example', ExampleController::class, 'cacheExample');
+        $route->get('/validator-example', ExampleController::class, 'showValidatorExample');
         $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
         $route->get('/dotenv-example', ExampleController::class, 'envExample');
         $route->get('/database-example', ExampleController::class, 'databaseExamples');
@@ -40,6 +41,7 @@ class ApplicationRoutes implements RoutableInterface
 
         // Post Example
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');
+        $route->post('/validate-example-post', ExampleController::class, 'validateExample');
 
         return $route;
     }

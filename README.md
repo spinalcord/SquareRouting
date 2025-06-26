@@ -39,7 +39,6 @@ SquareRouting is a powerful, fast, and flexible PHP MVC micro-framework designed
 *   **Input Validation**: Robust validation rules for various data types, including nested and array validation.
 *   **Custom Database Class**: A handy way to modify your database.
 *   **Template Engine**: Simple PHP-based template engine for rendering dynamic HTML views with built-in caching.
-*   **No `static` !**: You heard it right! No `static` is used in this project, which makes this project perfectly fine for testing.
 ## Installation
 
 This project uses Composer for dependency management.
