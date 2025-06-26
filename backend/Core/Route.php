@@ -69,6 +69,54 @@ class Route
         return $this;
     }
 
+    /**
+     * @param array<int,mixed> $paramPatterns
+     */
+    public function put(string $path, string $controller, string $action, array $paramPatterns = []): self {
+        $route = [
+            'method'     => 'PUT',
+            'path'       => $this->normalizePath($path),
+            'controller' => $controller,
+            'action'     => $action,
+            'params'     => $this->compileParamPatterns($paramPatterns),
+            'filters'    => []
+        ];
+        $this->routes[] = $route;
+        return $this;
+    }
+
+    /**
+     * @param array<int,mixed> $paramPatterns
+     */
+    public function delete(string $path, string $controller, string $action, array $paramPatterns = []): self {
+        $route = [
+            'method'     => 'DELETE',
+            'path'       => $this->normalizePath($path),
+            'controller' => $controller,
+            'action'     => $action,
+            'params'     => $this->compileParamPatterns($paramPatterns),
+            'filters'    => []
+        ];
+        $this->routes[] = $route;
+        return $this;
+    }
+
+    /**
+     * @param array<int,mixed> $paramPatterns
+     */
+    public function patch(string $path, string $controller, string $action, array $paramPatterns = []): self {
+        $route = [
+            'method'     => 'PATCH',
+            'path'       => $this->normalizePath($path),
+            'controller' => $controller,
+            'action'     => $action,
+            'params'     => $this->compileParamPatterns($paramPatterns),
+            'filters'    => []
+        ];
+        $this->routes[] = $route;
+        return $this;
+    }
+
     public function reroute(string $from, string $to): void {
         $this->routes[] = [
             'method' => 'REROUTE',

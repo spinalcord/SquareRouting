@@ -43,6 +43,15 @@ class ApplicationRoutes implements RoutableInterface
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');
         $route->post('/validate-example-post', ExampleController::class, 'validateExample');
 
+        // Put Example
+        $route->put('/put-example/:id', ExampleController::class, 'handlePutRequest', ['id' => 'num']);
+
+        // Delete Example
+        $route->delete('/delete-example/:id', ExampleController::class, 'handleDeleteRequest', ['id' => 'num']);
+
+        // Patch Example
+        $route->patch('/patch-example/:id', ExampleController::class, 'handlePatchRequest', ['id' => 'num']);
+
         return $route;
     }
 }

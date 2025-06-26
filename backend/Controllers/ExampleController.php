@@ -61,6 +61,26 @@ class ExampleController  {
     return (new Response)->json(['status' => 'success', 'message' => 'POST request received!', 'data' => $data], 200);
   }
 
+  public function handlePutRequest(int $id): Response
+  {
+      $data = $this->request->getJson();
+      $response = new Response();
+      return $response->json(['message' => "Put request received for ID: {$id}", 'data' => $data]);
+  }
+
+  public function handleDeleteRequest(int $id): Response
+  {
+      $response = new Response();
+      return $response->json(['message' => "Delete request received for ID: {$id}"]);
+  }
+
+  public function handlePatchRequest(int $id): Response
+  {
+      $data = $this->request->getJson();
+      $response = new Response();
+      return $response->json(['message' => "Patch request received for ID: {$id}", 'data' => $data]);
+  }
+
 
   public function redirectToGoogle(): Response {
       return (new Response)->redirect('https://www.google.com');
