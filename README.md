@@ -28,7 +28,7 @@ SquareRouting is a powerful, fast, and flexible PHP MVC micro-framework designed
 - [License](#license)
 
 ## Features
-*   **Flexible Routing**: Define routes for GET, POST, and REROUTE (redirection) methods.
+*   **Flexible Routing**: Define routes for GET, POST, PUT, DELETE, PATCH, and REROUTE (redirection) methods.
 *   **Path Parameters**: Supports dynamic URL segments with predefined patterns (e.g., `num`, `alpha`, `slug`) and a special `:path` parameter for capturing entire sub-paths, including slashes.
 *   **Route Filters**: Apply 'before' and 'after' filters to routes for tasks like authentication, logging, or data manipulation. Filters are classes with `before` and `after` methods that receive the `DependencyContainer`.
 *   **Dependency Injection**: Integrates with a `DependencyContainer` for managing and injecting dependencies into controllers and filters.
@@ -90,6 +90,15 @@ class ApplicationRoutes implements RoutableInterface
 
         // POST Routes
         $route->post('/submit-form', ExampleController::class, 'processForm');
+
+        // PUT Routes
+        $route->put('/update-item/:id', ExampleController::class, 'updateItem', ['id' => 'num']);
+
+        // DELETE Routes
+        $route->delete('/delete-item/:id', ExampleController::class, 'deleteItem', ['id' => 'num']);
+
+        // PATCH Routes
+        $route->patch('/patch-item/:id', ExampleController::class, 'patchItem', ['id' => 'num']);
 
         return $route;
     }
