@@ -28,7 +28,6 @@ SquareRouting is a powerful, fast, and flexible PHP MVC micro-framework designed
 - [License](#license)
 
 ## Features
-
 *   **Flexible Routing**: Define routes for GET, POST, and REROUTE (redirection) methods.
 *   **Path Parameters**: Supports dynamic URL segments with predefined patterns (e.g., `num`, `alpha`, `slug`) and a special `:path` parameter for capturing entire sub-paths, including slashes.
 *   **Route Filters**: Apply 'before' and 'after' filters to routes for tasks like authentication, logging, or data manipulation. Filters are classes with `before` and `after` methods that receive the `DependencyContainer`.
@@ -40,7 +39,7 @@ SquareRouting is a powerful, fast, and flexible PHP MVC micro-framework designed
 *   **Input Validation**: Robust validation rules for various data types, including nested and array validation.
 *   **Custom Database Class**: A handy way to modify your database.
 *   **Template Engine**: Simple PHP-based template engine for rendering dynamic HTML views with built-in caching.
-
+*   **No `static` !**: You heard it right! No `static` is used in this project, which makes this project perfectly fine for testing.
 ## Installation
 
 This project uses Composer for dependency management.

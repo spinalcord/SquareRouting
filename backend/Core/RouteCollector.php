@@ -6,7 +6,6 @@ namespace SquareRouting\Core;
 class RouteCollector
 {
     private array $routeInstances = [];
-    public static $avaibleRoutes = [];
 
     function __construct(public DependencyContainer $container)
     {
@@ -27,7 +26,6 @@ class RouteCollector
             foreach ($routeInstance->getRoutes() as $routeDefinition) {
                 $merged->addRouteDefinition($routeDefinition);
             }
-            self::$avaibleRoutes = array_merge(self::$avaibleRoutes, $routeInstance->getRoutesStrArray());
         }
         return $merged;
     }
