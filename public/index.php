@@ -1,5 +1,6 @@
 <?php
 
+use SquareRouting\Core\Account;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
@@ -48,6 +49,10 @@ $db = $container->get(Database::class);
 
 $container->register(View::class, parameters: ['templateDir' => $templateLocation  , 'cacheDir' =>  $cacheLocation]);
 $view = $container->get(View::class); 
+
+// Auth
+$container->register(Account::class, parameters: ['container' => $container ]);
+$account = $container->get(Account::class); 
 
 ////////////////////////////////////
 // Cors protection (add your domain to the array)

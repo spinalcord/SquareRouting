@@ -10,6 +10,7 @@ use SquareRouting\Core\Response; // Important for the Return Type Hint
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
 use SquareRouting\Core\Database;
+use SquareRouting\Core\Account;
 use PDO;
 use SquareRouting\Core\Validation\Validator;
 use SquareRouting\Core\Validation\Rules\Required;
@@ -27,6 +28,7 @@ class ExampleController  {
   public DotEnv $dotEnv;
   private Database $db;
   public View $view;
+  public Account $account;
 
   public function __construct(DependencyContainer $container) {
    $this->rateLimiter = $container->get(RateLimiter::class);
@@ -35,6 +37,7 @@ class ExampleController  {
    $this->dotEnv = $container->get(DotEnv::class);
    $this->db = $container->get(Database::class);
    $this->view = $container->get(View::class);
+   $this->account = $container->get(Account::class);
   }
 
   public function someTest(int $mynum): Response {
@@ -225,6 +228,7 @@ class ExampleController  {
         // 2. Insert Example
         try {
             $initialUserCount = $this->db->count('users');
+
             if ($initialUserCount < 3) { // Ensure we don't insert too many times
                 $insertedId1 = $this->db->insert('users', [
                     'username' => 'test_user_' . uniqid(),
@@ -290,7 +294,8 @@ class ExampleController  {
 
         // 8. Transaction Example
         try {
-            $transactionResult = $this->db->transaction(function (Database $db) {
+            if ($initialUserCount < 3) { // Ensure we don't insert too many times
+                            $transactionResult = $this->db->transaction(function (Database $db) {
                 $db->insert('users', [
                     'username' => 'transaction_user_' . uniqid(),
                     'email' => 'transaction_' . uniqid() . '@example.com',
@@ -301,6 +306,8 @@ class ExampleController  {
                 return "Transaction successful (or rolled back)";
             });
             $results['transaction'] = ['status' => 'success', 'message' => $transactionResult];
+            }
+
         } catch (\Exception $e) {
             $results['transaction'] = ['status' => 'error', 'message' => 'Transaction failed: ' . $e->getMessage()];
         }
@@ -365,6 +372,12 @@ class ExampleController  {
 
         $this->view->setMultiple($data);;
         $output = $this->view->render("demo.tpl");
+        return (new Response)->html($output);
+    }
+
+
+    public function registerAccount(): Response {
+        $output = $this->view->render("register.tpl", ["email" => "example@example.com"]);
         return (new Response)->html($output);
     }
 }

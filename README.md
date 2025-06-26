@@ -1,7 +1,7 @@
 ![](logo.jpg)
 # SquareRouting
 
-A simple yet powerful PHP routing script designed for clarity and flexibility. This project provides a robust foundation for building web applications with clean URL structures, route parameters, and essential features like rate limiting and caching.
+A powerful PHP MVC micro framework designed for clarity and flexibility. The best part: it's incredibly fast 🔥🔥. This project provides a robust foundation for building web applications with clean URL structures, route parameters, and essential features like rate limiting and caching and damn even a account system!
 
 ## Features
 
@@ -43,10 +43,11 @@ ALLOWED_ORIGINS="https://my-domain.com, https://another-example.com"
 Routes are defined in `app/Routes/ApplicationRoutes.php`. You can add GET, POST, and REROUTE rules.
 
 ```php
-// app/Routes/ApplicationRoutes.php
+// backend/Routes/ApplicationRoutes.php
 use SquareRouting\Controllers\ExampleController;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Route;
+use SquareRouting\Core\Interfaces\RoutableInterface;
 use SquareRouting\Filters\ExampleFilter;
 
 class ApplicationRoutes implements RoutableInterface
@@ -59,24 +60,16 @@ class ApplicationRoutes implements RoutableInterface
         $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         // Reroute Example
-        $route->reroute('/reroute-test', '/redirect-to-google'); // Reroutes, which then redirects to Google.com
-        $route->get('/redirect-to-google', ExampleController::class, 'redirectToGoogle');
+        $route->reroute('/old-path', '/new-path');
 
         // GET Routes
-        $route->get('/html', ExampleController::class, 'showHtmlPage');
-        $route->get('/test/:myid', ExampleController::class, 'someTest', ['myid' => 'num']);
-        $route->get('/rate-limit-example', ExampleController::class, 'rateLimiterExample');
-        $route->get('/cache-example', ExampleController::class, 'cacheExample');
-        $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
-        $route->get('/dotenv-example', ExampleController::class, 'envExample');
-        $route->get('/pdo-read', ExampleController::class, 'pdoReadTableExample');
-        $route->get('/pdo-create', ExampleController::class, 'pdoCreateTableExample');
-        $route->get('/filtertest', ExampleController::class, 'filterTest')
-              ->filter([ExampleFilter::class]); // Apply the ExampleFilter to this route
+        $route->get('/hello/:name', ExampleController::class, 'sayHello', ['name' => 'alpha']);
+        $route->get('/data/:id', ExampleController::class, 'getData', ['id' => 'num']);
+        $route->get('/filtered-route', ExampleController::class, 'filteredMethod')
+              ->filter([ExampleFilter::class]); // Apply a filter
 
         // POST Routes
-        $route->post('/post-example', ExampleController::class, 'handlePostRequest');
-        $route->post('/validate-example', ExampleController::class, 'validateExample');
+        $route->post('/submit-form', ExampleController::class, 'processForm');
 
         return $route;
     }
@@ -165,20 +158,17 @@ $route->get('/filtertest', ExampleController::class, 'filterTest')
 After that a filter will executed before and after the specific get method.
 
 ```php
+// backend/Controllers/ExampleController.php
 namespace SquareRouting\Controllers;
 
-use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Response;
 
 class ExampleController {
-
-  public function __construct(DependencyContainer $container) {
+  // ...
+  public function filteredMethod(): Response {
+    return (new Response)->html("Content after filter.");
   }
-
-  public function filterTest(): Response {
-    return (new Response)->html(" Filter Test ");
-    // Output: some text before... Filter Test ...some text after.
-  }
+  // ...
 }
 ```
 
@@ -188,8 +178,9 @@ class ExampleController {
 The `Cache` class provides a simple mechanism for caching data. You can retrieve, store, delete, and clear cached items.
 
 ```php
-// Example usage in a controller or service
+// backend/Controllers/ExampleController.php
 use SquareRouting\Core\Cache;
+use SquareRouting\Core\Response;
 
 class ExampleController {
     public Cache $cache;
@@ -199,35 +190,12 @@ class ExampleController {
     }
 
     public function cacheExample(): Response {
-        $cacheKey = 'my_cached_data';
-        $prefix = 'example_prefix';
-        $ttl = 15; // Cache for 15 seconds
+        $data = $this->cache->get('my_prefix', 'my_key', function() {
+            // This callback runs if data is not in cache
+            return ['message' => 'Data fetched from source.'];
+        }, 60); // Cache for 60 seconds
 
-        $data = $this->cache->get($prefix, $cacheKey, function() {
-            sleep(2); // Simulate a delay
-            return [
-                'message' => 'Data fetched from source at ' . date('Y-m-d H:i:s'),
-                'generated_at' => time() // Store Unix timestamp
-            ];
-        }, $ttl);
-
-        $generatedAt = $data['generated_at'] ?? null;
-        $expiresAt = null;
-        $remainingSeconds = null;
-        if ($generatedAt !== null) {
-            $expiresAt = $generatedAt + $ttl;
-            $remainingSeconds = $expiresAt - time();
-            if ($remainingSeconds < 0) {
-                $remainingSeconds = 0; // Cache has already expired
-            }
-        }
-
-        return (new Response)->json([
-            'status' => 'success',
-            'data' => $data,
-            'source' => 'cache',
-            'remaining_seconds_until_expiry' => $remainingSeconds
-        ], 200);
+        return (new Response)->json($data);
     }
 }
 ```
@@ -271,7 +239,10 @@ class ExampleController {
 The `rateLimiterExample` method demonstrates how to use the built-in `RateLimiter` to protect your endpoints from excessive requests.
 
 ```php
-// app/Controllers/ExampleController.php
+// backend/Controllers/ExampleController.php
+use SquareRouting\Core\RateLimiter;
+use SquareRouting\Core\Response;
+
 class ExampleController {
     public RateLimiter $rateLimiter;
 
@@ -280,20 +251,16 @@ class ExampleController {
     }
 
     public function rateLimiterExample(): Response {
-        $clientId = $_SERVER['REMOTE_ADDR']; // Get client IP address
-        $key = 'api_access'; // Define a key for the rate limit
-
+        $clientId = $_SERVER['REMOTE_ADDR'];
+        $key = 'api_access';
         $this->rateLimiter->setLimit($key, 5, 60); // 5 attempts per 60 seconds
 
         if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
-            $remainingTime = $this->rateLimiter->getRemainingTimeToReset($key, $clientId);
-            return (new Response)->json(['status' => 'error', 'message' => 'Rate limit exceeded. Try again in ' . $remainingTime . ' seconds.'], 429);
+            return (new Response)->json(['message' => 'Rate limit exceeded.'], 429);
         }
 
         $this->rateLimiter->registerAttempt($key, $clientId);
-        $remainingAttempts = $this->rateLimiter->getRemainingAttempts($key, $clientId);
-
-        return (new Response)->json(['status' => 'success', 'message' => 'API access granted.', 'remaining_attempts' => $remainingAttempts], 200);
+        return (new Response)->json(['message' => 'Access granted.']);
     }
 }
 ```
@@ -323,7 +290,7 @@ class ExampleController {
 The `validateExample` method showcases the use of the `Validator` class for input validation, including required fields, minimum/maximum lengths, `in` rule, nested validation, array validation, and JSON validation.
 
 ```php
-// app/Controllers/ExampleController.php
+// backend/Controllers/ExampleController.php
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\Request;
@@ -332,9 +299,6 @@ use SquareRouting\Core\Validation\Validator;
 use SquareRouting\Core\Validation\Rules\Required;
 use SquareRouting\Core\Validation\Rules\Email;
 use SquareRouting\Core\Validation\Rules\Min;
-use SquareRouting\Core\Validation\Rules\In;
-use SquareRouting\Core\Validation\Rules\IsArray;
-use SquareRouting\Core\Validation\Rules\Json;
 
 class ExampleController {
     public Request $request;
@@ -344,70 +308,53 @@ class ExampleController {
     }
 
     public function validateExample(): Response {
-        $data = $this->request->post(); 
-
-        // The rules for the data
+        $data = $this->request->post();
         $rules = [
-            'username' => [new Required(), new Min(5)],
+            'email' => [new Required(), new Email()],
             'password' => [new Required(), new Min(8)],
-            'status' => [new Required(), new In(['active', 'inactive', 'pending'])],
-
-            // Nested validation using dot notation
-            'contact.email' => [new Required(), new Email()],
-            'contact.address.city' => [new Required()],
-
-            // Array validation using the '*' wildcard
-            'tags' => [new IsArray(), new Min(1)], // The 'tags' field itself must be an array with at least 1 item.
-            'tags.*.id' => [new Required()], // Rule for each item in the 'tags' array
-            'tags.*.name' => [new Required(), new Min(3)],
-
-            // JSON validation
-            'metadata_json' => [new Json()],
-            'invalid_json' => [new Json()],
         ];
 
-        // Create a validator instance and run it
         $validator = Validator::make($data, $rules);
 
         if ($validator->fails()) {
-            return (new Response)->json([
-                'status' => 'error',
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-                'data_used_for_validation' => $data
-            ], 400);
+            return (new Response)->json(['status' => 'error', 'errors' => $validator->errors()], 400);
         } else {
-            return (new Response)->json([
-                'status' => 'success',
-                'message' => 'Validation passed',
-                'validated_data' => $validator->validated(),
-                'data_used_for_validation' => $data
-            ], 200);
+            return (new Response)->json(['status' => 'success', 'message' => 'Validation passed.']);
         }
     }
 }
 ```
 
-### Database Examples (PDO)
+### Database Examples (Using `Database` Class)
 
-The `ExampleController` includes methods demonstrating basic database operations using PDO.
-
-#### Create Table and Insert Data Example
-
-The `pdoCreateTableExample` method shows how to create a `users` table (if it doesn't exist) and insert sample data.
+The `ExampleController` includes a concise `databaseExamples` method that demonstrates core database operations using the custom `Database` class, including creating tables, inserting, selecting, updating, deleting, and managing transactions.
 
 ```php
-// app/Controllers/ExampleController.php
-class ExampleController {
-    private PDO $db;
+// backend/Controllers/ExampleController.php
+namespace SquareRouting\Controllers;
 
-    public function __construct(DependencyContainer $container) {
-        $this->db = $container->get(DatabaseConnection::class)->getPdo();
+use PDOException;
+use SquareRouting\Core\Database; // Make sure to import the Database class
+use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\Response;
+
+class ExampleController
+{
+    private Database $db; // Use the custom Database class
+
+    public function __construct(DependencyContainer $container)
+    {
+        $this->db = $container->get(Database::class); // Get the Database instance
     }
 
-    public function pdoCreateTableExample(): Response {
+    public function databaseExamples(): Response
+    {
+        $results = [];
+
         try {
-            $sql = "CREATE TABLE IF NOT EXISTS users (
+            // 1. Create Table Example
+            $tableName = 'users';
+            $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username VARCHAR(50) NOT NULL UNIQUE,
                 email VARCHAR(100) NOT NULL UNIQUE,
@@ -415,86 +362,59 @@ class ExampleController {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )";
-            
-            $this->db->exec($sql);
-            
-            $checkStmt = $this->db->prepare("SELECT COUNT(*) FROM users");
-            $checkStmt->execute();
-            $userCount = $checkStmt->fetchColumn();
-            
-            if ($userCount == 0) {
-                $insertSql = "INSERT INTO users (username, email, password_hash) VALUES
-                            ('john_doe', 'john@example.com', :password1),
-                            ('jane_smith', 'jane@example.com', :password2),
-                            ('bob_wilson', 'bob@example.com', :password3)";
-                
-                $insertStmt = $this->db->prepare($insertSql);
-                $insertStmt->execute([
-                    ':password1' => password_hash('password123', PASSWORD_DEFAULT),
-                    ':password2' => password_hash('secret456', PASSWORD_DEFAULT),
-                    ':password3' => password_hash('mypass789', PASSWORD_DEFAULT)
-                ]);
-                
-                $insertedRows = $insertStmt->rowCount();
-                
-                return (new Response)->json([
-                    'status' => 'success',
-                    'message' => 'Table created and sample data inserted',
-                    'table_name' => 'users',
-                    'inserted_rows' => $insertedRows
-                ], 201);
+            $this->db->query($sql);
+            $results['create_table'] = ['status' => 'success', 'message' => "Table '{$tableName}' ensured to exist."];
+
+            // 2. Insert Example
+            $insertedId1 = $this->db->insert('users', [
+                'username' => 'test_user_' . uniqid(),
+                'email' => 'test_' . uniqid() . '@example.com',
+                'password_hash' => password_hash('password123', PASSWORD_DEFAULT)
+            ]);
+            $insertedId2 = $this->db->insert('users', [
+                'username' => 'another_user_' . uniqid(),
+                'email' => 'another_' . uniqid() . '@example.com',
+                'password_hash' => password_hash('securepass', PASSWORD_DEFAULT)
+            ]);
+            $results['insert'] = ['status' => 'success', 'message' => 'Users inserted.', 'ids' => [$insertedId1, $insertedId2]];
+
+            // 3. Select All Example
+            $allUsers = $this->db->select('users', ['id', 'username', 'email', 'created_at'], [], 'created_at DESC');
+            $results['select_all'] = ['status' => 'success', 'message' => 'All users retrieved.', 'count' => count($allUsers)];
+
+            // 4. Select with WHERE Example
+            $specificUser = $this->db->select('users', ['id', 'username', 'email'], ['username' => $allUsers[0]['username'] ?? 'nonexistent'], '', 1);
+            $results['select_where'] = ['status' => 'success', 'message' => 'Specific user retrieved.', 'data' => $specificUser];
+
+            // 5. Update Example
+            if (!empty($allUsers)) {
+                $updatedRows = $this->db->update('users', ['email' => 'updated_' . uniqid() . '@example.com'], ['id' => $allUsers[0]['id']]);
+                $results['update'] = ['status' => 'success', 'message' => "Updated {$updatedRows} row(s)."];
             } else {
-                return (new Response)->json([
-                    'status' => 'success',
-                    'message' => 'Table already exists with data',
-                    'table_name' => 'users',
-                    'existing_rows' => $userCount
-                ], 200);
+                $results['update'] = ['status' => 'info', 'message' => 'Skipped update, no users to update.'];
             }
-            
+
+            // 6. Transaction Example
+            $transactionResult = $this->db->transaction(function (Database $db) {
+                $db->insert('users', [
+                    'username' => 'transaction_user_' . uniqid(),
+                    'email' => 'transaction_' . uniqid() . '@example.com',
+                    'password_hash' => password_hash('txpass', PASSWORD_DEFAULT)
+                ]);
+                // throw new \Exception("Simulating transaction rollback"); // Uncomment to test rollback
+                return "Transaction successful (or rolled back)";
+            });
+            $results['transaction'] = ['status' => 'success', 'message' => $transactionResult];
+
+            // 7. Delete Example (clean up some data)
+            $deletedRows = $this->db->delete('users', ['username' => 'transaction_user_' . uniqid()]); // This will likely delete nothing unless the transaction user was committed
+            $results['delete'] = ['status' => 'success', 'message' => "Deleted {$deletedRows} row(s)."];
+
         } catch (PDOException $e) {
-            return (new Response)->json([
-                'status' => 'error',
-                'message' => 'Database error: ' . $e->getMessage()
-            ], 500);
+            $results['overall_error'] = ['status' => 'error', 'message' => 'Database operation failed: ' . $e->getMessage()];
         }
-    }
-}
-```
 
-#### Read Table Example
-
-The `pdoReadTableExample` method demonstrates how to read all records from a `users` table.
-
-```php
-// app/Controllers/ExampleController.php
-class ExampleController {
-    private PDO $db;
-
-    public function __construct(DependencyContainer $container) {
-        $this->db = $container->get(DatabaseConnection::class)->getPdo();
-    }
-
-    public function pdoReadTableExample(): Response {
-        try {
-            $stmt = $this->db->prepare("SELECT id, username, email, created_at FROM users ORDER BY created_at DESC");
-            $stmt->execute();
-            
-            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            return (new Response)->json([
-                'status' => 'success',
-                'message' => 'Users retrieved successfully',
-                'data' => $users,
-                'count' => count($users)
-            ], 200);
-            
-        } catch (PDOException $e) {
-            return (new Response)->json([
-                'status' => 'error',
-                'message' => 'Database error: ' . $e->getMessage()
-            ], 500);
-        }
+        return (new Response)->json($results, 200);
     }
 }
 ```
@@ -502,24 +422,23 @@ class ExampleController {
 
 ### View (Template Engine) Example
 
-The `View` class provides a simple yet powerful PHP-based template engine for rendering dynamic HTML views. It supports variable interpolation, loops (foreach), conditional statements (if/else), and inclusion of partial templates. The engine also includes a built-in caching mechanism to improve performance by storing compiled templates. 
+The `View` class provides a simple yet powerful PHP-based (Twig-like) template engine for rendering dynamic HTML views. It supports variable interpolation, loops (foreach), conditional statements (if/else), and inclusion of partial templates. The engine also includes a built-in caching mechanism to improve performance by storing compiled templates. And the best part is: it is fast!
 
 **Key Features:**
-*   **Variable Interpolation**: Display dynamic data using `{$variableName}`.
-*   **Loops**: Iterate over arrays or objects with `{foreach $collection as $item}`.
-*   **Conditionals**: Render content conditionally using `{if $condition}` and `{else}`.
-*   **Partial Includes**: Reuse template parts with `{include "partial_template.tpl"}`.
-*   **Raw Output**: Prevent HTML escaping for raw HTML content using `{$variable|raw}`.
-*   **Caching**: Automatically caches compiled templates for faster rendering.
+*   **Control Structures**: Use `{% control structure %}` for logic (e.g., `if`, `foreach`, `while`).
+*   **Escaped Output**: Display dynamic data with HTML escaping using `{{ $variableName }}`.
+*   **Raw Output**: Display dynamic data without HTML escaping using `{{ $variableName|raw }}`.
+*   **Template Comments**: Add comments that are ignored during compilation using `{# comment #}`.
+*   **Partial Includes**: Reuse template parts with `{% include "partial_template.tpl" %}`.
+*   **Template Inheritance**: Extend layouts and define blocks using `{% extends "layout.tpl" %}` and `{% block blockName %}`.
+*   **Caching**: Automatically caches compiled templates for faster rendering (Default: disabled).
 
 **Usage Example:**
 
 You can render a view by creating an instance of `View` (which can be injected via the `DependencyContainer`) and then using its `render` method. The output of the `render` method should then be returned as an HTML response.
 
 ```php
-// Example usage in a controller
-namespace SquareRouting\Controllers;
-
+// backend/Controllers/ExampleController.php
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Response;
 use SquareRouting\Core\View;
@@ -533,80 +452,41 @@ class ExampleController {
 
     public function templateExample(): Response {
         $data = [
-            'pageTitle' => 'Template Engine Example',
-            'greeting' => 'Hello',
-            'userName' => 'World',
-            'currentYear' => date('Y'),
-            'currentTime' => date('H:i:s'),
-            'features' => [
-                ['name' => 'Variables', 'description' => 'Dynamic content display'],
-                ['name' => 'Loops', 'description' => 'Iterating over data collections'],
-                ['name' => 'Conditionals', 'description' => 'Displaying content based on logic'],
-                ['name' => 'Includes', 'description' => 'Reusing template partials'],
-                ['name' => 'Translations', 'description' => 'Multilingual support'],
-                ['name' => 'Events', 'description' => 'Injecting dynamic content via callbacks'],
-                ['name' => 'Caching', 'description' => 'Improved performance'],
-                ['name' => 'Auto-escaping', 'description' => 'XSS protection by default'],
-            ],
-            'isAdmin' => true,
-            'showExtraContent' => true,
-            'rawHtml' => '<strong>This is raw HTML!</strong> <script>alert("Test XSS attempt!");</script>',
+            'pageTitle' => 'My Page',
+            'userName' => 'Guest',
+            'items' => ['Item 1', 'Item 2', 'Item 3'],
+            'isLoggedIn' => true,
         ];
 
         $this->view->setMultiple($data);
-        $output = $this->view->render("demo.tpl");
+        $output = $this->view->render("demo.tpl"); // Renders backend/Templates/demo.tpl
         return (new Response)->html($output);
     }
 }
 ```
 
-**`backend/Templates/demo.tpl` content:**
+**`backend/Templates/demo.tpl` content (simplified):**
 
 ```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{$pageTitle}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
-        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1, h2 { color: #0056b3; }
-        ul { list-style-type: none; padding: 0; }
-        li { background-color: #e9e9e9; margin-bottom: 5px; padding: 10px; border-radius: 4px; }
-        .highlight { color: green; font-weight: bold; }
-        .error { color: red; }
-    </style>
+    <title>{{ $pageTitle }}</title>
 </head>
 <body>
-    <div class="container">
-        <h1>{$greeting}, {$userName}!</h1>
-
-        <ul>
-            {foreach $features as $feature}
-                <li>{$feature.name}: {$feature.description}</li>
-            {/foreach}
-        </ul>
-
-        <h2>Conditional Content</h2>
-        {if $isAdmin == true}
-            <p class="highlight">You are an administrator. Access granted to sensitive content.</p>
-        {else}
-            <p class="error">You are a regular user. Some content is restricted.</p>
-        {/if}
-
-
-        {if $showExtraContent}
-            <p>This content is only shown if 'showExtraContent' is true.</p>
-        {/if}
-
-        <h2>Included Content</h2>
-        {include "partial_info.tpl"}
-
-        <h2>Raw Variable Example</h2>
-        <p>Raw HTML (not escaped): {$rawHtml|raw}</p>
-    </div>
+    <h1>Hello, {{ $userName }}!</h1>
+    {% if $isLoggedIn %}
+        <p>Welcome back!</p>
+    {% else %}
+        <p>Please log in.</p>
+    {% endif %}
+    <ul>
+        {% foreach $items as $item %}
+            <li>{{ $item }}</li>
+        {% endforeach %}
+    </ul>
+    {% include "partial_info.tpl" %}
 </body>
 </html>
 ```
