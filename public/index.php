@@ -7,7 +7,7 @@ use SquareRouting\Routes\ApplicationRoutes;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
-use SquareRouting\Core\DatabaseConnection;
+use SquareRouting\Core\Database;
 use SquareRouting\Core\CorsMiddleware;
 use SquareRouting\Core\View;
 
@@ -43,8 +43,8 @@ $container->register(RateLimiter::class,parameters: ['dataFile' => $rateLimitTem
 $rateLimiter = $container->get(RateLimiter::class); 
 
 // Database connection
-$container->register(DatabaseConnection::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation ]);
-$db = $container->get(DatabaseConnection::class); 
+$container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation ]);
+$db = $container->get(Database::class); 
 
 $container->register(View::class, parameters: ['templateDir' => $templateLocation  , 'cacheDir' =>  $cacheLocation]);
 $view = $container->get(View::class); 

@@ -29,8 +29,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/cache-example', ExampleController::class, 'cacheExample');
         $route->get('/dashboard/:location', ExampleController::class, 'dashboardExample', ['location' => 'path']);
         $route->get('/dotenv-example', ExampleController::class, 'envExample');
-        $route->get('/pdo-read', ExampleController::class, 'pdoReadTableExample');
-        $route->get('/pdo-create', ExampleController::class, 'pdoCreateTableExample');
+        $route->get('/database-example', ExampleController::class, 'databaseExamples');
         $route->get('/filtertest', ExampleController::class, 'filterTest')
               ->filter([ExampleFilter::class]);
 
