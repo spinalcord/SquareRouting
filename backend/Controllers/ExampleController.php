@@ -7,10 +7,8 @@ use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response; // Important for the Return Type Hint
-use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
 use SquareRouting\Core\Database;
-use SquareRouting\Core\Account;
 use PDO;
 use SquareRouting\Core\Validation\Validator;
 use SquareRouting\Core\Validation\Rules\Required;
@@ -23,21 +21,17 @@ use SquareRouting\Core\Validation\Rules\Json;
 
 class ExampleController  {
   public Request $request;
-  public RateLimiter $rateLimiter;
   public Cache $cache;
   public DotEnv $dotEnv;
   private Database $db;
   public View $view;
-  public Account $account;
 
   public function __construct(DependencyContainer $container) {
-   $this->rateLimiter = $container->get(RateLimiter::class);
    $this->cache = $container->get(Cache::class);
    $this->request = $container->get(Request::class);
    $this->dotEnv = $container->get(DotEnv::class);
    $this->db = $container->get(Database::class);
    $this->view = $container->get(View::class);
-   $this->account = $container->get(Account::class);
   }
 
   public function someTest(int $mynum): Response {
@@ -70,7 +64,7 @@ class ExampleController  {
   }
 
   public function rateLimiterExample(): Response {
-    $clientId = $_SERVER['REMOTE_ADDR']; // Get client IP address
+    $clientId = $this->request->getClientIp(); // Get client IP address
     $key = 'api_access'; // Define a key for the rate limit
 
     $this->rateLimiter->setLimit($key, 5, 60); // 5 attempts per 60 seconds
@@ -376,9 +370,5 @@ class ExampleController  {
     }
 
 
-    public function registerAccount(): Response {
-        $output = $this->view->render("register.tpl", ["email" => "example@example.com"]);
-        return (new Response)->html($output);
-    }
 }
 

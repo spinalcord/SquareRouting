@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace SquareRouting\Routes;
 
+use SquareRouting\Controllers\AuthenticationController;
 use SquareRouting\Controllers\ExampleController;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Interfaces\RoutableInterface;
@@ -34,21 +35,8 @@ class ApplicationRoutes implements RoutableInterface
               ->filter([ExampleFilter::class]);
 
         $route->get('/template-example', ExampleController::class, 'templateExample');
+        $route->get('/account-example', AuthenticationController::class, 'accountExample');
         
-        // Account Routes
-        $route->get('/account/register', ExampleController::class, 'registerAccount');
-        $route->get('/account/login', ExampleController::class, 'loginAccount');
-        $route->post('/account/register', ExampleController::class, 'handleRegisterAccount');
-        $route->post('/account/login', ExampleController::class, 'handleLoginAccount');
-        $route->get('/account/current', ExampleController::class, 'getCurrentAccount');
-        $route->post('/account/logout', ExampleController::class, 'logoutAccount');
-        $route->post('/account/change-password', ExampleController::class, 'changePassword');
-        $route->post('/account/generate-reset-token', ExampleController::class, 'generateResetToken');
-        $route->post('/account/reset-password', ExampleController::class, 'resetPassword');
-        $route->post('/account/profile', ExampleController::class, 'updateAccountProfile');
-        $route->post('/account/delete', ExampleController::class, 'deleteAccount');
-        $route->post('/account/generate-verification-token', ExampleController::class, 'generateVerificationToken');
-        $route->get('/account/verify-email', ExampleController::class, 'verifyEmail');
 
         // Post Example
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');

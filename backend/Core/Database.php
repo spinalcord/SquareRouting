@@ -411,4 +411,19 @@ class Database
     {
         return $this->pdo->quote($string);
     }
+
+    /**
+     * Checks if the database connection is active.
+     */
+    public function isConnectionActive(): bool
+    {
+        try {
+            // Attempt a simple query to check the connection status
+            $this->pdo->query('SELECT 1');
+            return true;
+        } catch (PDOException $e) {
+            // Connection is not active or query failed
+            return false;
+        }
+    }
 }

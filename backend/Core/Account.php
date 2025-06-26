@@ -19,6 +19,11 @@ class Account
     public function __construct(DependencyContainer $container)
     {
         $this->db = $container->get(Database::class);
+
+        if (!$this->db->isConnectionActive()) {
+            throw new RuntimeException('Account feature needs a Database. Database connection not established or is inactive. Ensure the Database class is correctly configured and connected in the DependencyContainer.');
+        }
+        
         $this->ensureUserTableExists();
     }
 

@@ -14,7 +14,7 @@ A powerful PHP MVC micro framework designed for clarity and flexibility. The bes
 *   **Flexible Response Handling**: Convenient methods for sending JSON, HTML, or performing redirects.
 *   **CORS Protection**: Easily configure Cross-Origin Resource Sharing to control access to your resources.
 *   **Input Validation**: Robust validation rules for various data types, including nested and array validation.
-*   **Database Integration (PDO)**: Basic database operations using PDO for seamless interaction with SQL databases.
+*   **Custom Database Class**: A handy way to modify your database.
 *   **Template Engine**: Simple PHP-based template engine for rendering dynamic HTML views with built-in caching.
 
 ## Installation
