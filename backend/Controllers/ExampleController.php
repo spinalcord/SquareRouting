@@ -4,6 +4,7 @@ namespace SquareRouting\Controllers;
 use PDOException;
 use SquareRouting\Core\View;
 use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response; // Important for the Return Type Hint
@@ -25,6 +26,7 @@ class ExampleController  {
   public DotEnv $dotEnv;
   private Database $db;
   public View $view;
+  public RateLimiter $rateLimiter;
 
   public function __construct(DependencyContainer $container) {
    $this->cache = $container->get(Cache::class);
@@ -32,6 +34,7 @@ class ExampleController  {
    $this->dotEnv = $container->get(DotEnv::class);
    $this->db = $container->get(Database::class);
    $this->view = $container->get(View::class);
+   $this->rateLimiter = $container->get(RateLimiter::class);
   }
 
   public function someTest(int $mynum): Response {

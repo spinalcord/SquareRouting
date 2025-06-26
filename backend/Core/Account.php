@@ -13,12 +13,15 @@ class Account
     private string $tableName = 'users';
     private string $sessionKey = 'user_id';
     private int $passwordMinLength = 8;
-    private int $maxLoginAttempts = 5;
-    private int $lockoutDuration = 900; // 15 minutes in seconds
+    private RateLimiter $rateLimiter;
+    private string $loginRateLimitKey = 'login_attempts';
 
     public function __construct(DependencyContainer $container)
     {
         $this->db = $container->get(Database::class);
+        $this->rateLimiter = $container->get(RateLimiter::class);
+        // Define rate limit for login attempts: 5 attempts within 15 minutes (900 seconds)
+        $this->rateLimiter->setLimit($this->loginRateLimitKey, 5, 900);
 
         if (!$this->db->isConnectionActive()) {
             throw new RuntimeException('Account feature needs a Database. Database connection not established or is inactive. Ensure the Database class is correctly configured and connected in the DependencyContainer.');
@@ -65,15 +68,15 @@ class Account
 
         $email = strtolower(trim($email));
 
-        // Check for rate limiting
-        if ($this->isAccountLocked($email)) {
-            throw new RuntimeException('Account temporarily locked due to too many failed login attempts');
+        // Check for rate limiting before attempting login
+        if ($this->rateLimiter->isLimitExceeded($this->loginRateLimitKey, $email)) {
+            throw new RuntimeException('Too many failed login attempts. Please try again after ' . $this->rateLimiter->getRemainingTimeToReset($this->loginRateLimitKey, $email) . ' seconds.');
         }
 
         $user = $this->getUserByEmail($email);
         
         if (!$user || !$this->verifyPassword($password, $user['password'])) {
-            $this->recordFailedLogin($email);
+            $this->rateLimiter->registerAttempt($this->loginRateLimitKey, $email);
             throw new InvalidArgumentException('Invalid email or password');
         }
 
@@ -82,7 +85,7 @@ class Account
         }
 
         // Successful login
-        $this->clearFailedLoginAttempts($email);
+        $this->rateLimiter->unblockClient($this->loginRateLimitKey, $email); // Clear any previous failed attempts
         $this->updateLastLogin($user['id']);
         $this->startSession($user['id']);
 
@@ -439,36 +442,6 @@ class Account
         ], ['id' => $userId]);
     }
 
-    private function isAccountLocked(string $email): bool
-    {
-        $sql = "SELECT failed_login_attempts, last_failed_login FROM {$this->tableName} WHERE email = :email";
-        $user = $this->db->fetch($sql, ['email' => $email]);
-
-        if (!$user || $user['failed_login_attempts'] < $this->maxLoginAttempts) {
-            return false;
-        }
-
-        $lastFailedLogin = strtotime($user['last_failed_login']);
-        return (time() - $lastFailedLogin) < $this->lockoutDuration;
-    }
-
-    private function recordFailedLogin(string $email): void
-    {
-        $sql = "UPDATE {$this->tableName} SET 
-                failed_login_attempts = COALESCE(failed_login_attempts, 0) + 1,
-                last_failed_login = :now
-                WHERE email = :email";
-        
-        $this->db->query($sql, ['email' => $email, 'now' => date('Y-m-d H:i:s')]);
-    }
-
-    private function clearFailedLoginAttempts(string $email): void
-    {
-        $this->db->update($this->tableName, [
-            'failed_login_attempts' => 0,
-            'last_failed_login' => null
-        ], ['email' => $email]);
-    }
 
     private function ensureUserTableExists(): void
     {
@@ -494,8 +467,6 @@ class Account
                 reset_token VARCHAR(64),
                 reset_token_expires DATETIME,
                 remember_token VARCHAR(64),
-                failed_login_attempts INT DEFAULT 0,
-                last_failed_login DATETIME,
                 last_login DATETIME,
                 created_at DATETIME NOT NULL,
                 updated_at DATETIME,
@@ -515,8 +486,6 @@ class Account
                 reset_token TEXT,
                 reset_token_expires TEXT,
                 remember_token TEXT,
-                failed_login_attempts INTEGER DEFAULT 0,
-                last_failed_login TEXT,
                 last_login TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT
@@ -547,15 +516,4 @@ class Account
         return $this;
     }
 
-    public function setMaxLoginAttempts(int $attempts): self
-    {
-        $this->maxLoginAttempts = $attempts;
-        return $this;
-    }
-
-    public function setLockoutDuration(int $seconds): self
-    {
-        $this->lockoutDuration = $seconds;
-        return $this;
-    }
 }

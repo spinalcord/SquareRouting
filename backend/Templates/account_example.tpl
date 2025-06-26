@@ -18,7 +18,7 @@
 <body>
     <div class="container">
         <h1>{{ $pageTitle }}</h1>
-        <b>Warning: This example can be slow because we have a lot queries here. </b>
+        <font style="color:red"> <b>Warning: This example can be slow because we have a lot queries here.</b> </font>
         <h2>Account Operations Log</h2>
         <ul>
             {% foreach $messages as $message %}
