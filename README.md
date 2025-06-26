@@ -143,7 +143,7 @@ class ExampleController {
 }
 ```
 
-#### Route Filters
+#### Route Filters (Inspired by Lightpack PHP)
 
 Filters allow you to execute code before and after a route is processed. They are defined as classes with `before` and `after` methods.
 
