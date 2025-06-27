@@ -2,6 +2,7 @@
 namespace SquareRouting\Controllers;
 
 use PDOException;
+use SquareRouting\Core\Language;
 use SquareRouting\Core\View;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\RateLimiter;
@@ -26,6 +27,7 @@ class ExampleController  {
   public DotEnv $dotEnv;
   private Database $db;
   public View $view;
+  public Language $language;
   public RateLimiter $rateLimiter;
 
   public function __construct(DependencyContainer $container) {
@@ -35,6 +37,7 @@ class ExampleController  {
    $this->db = $container->get(Database::class);
    $this->view = $container->get(View::class);
    $this->rateLimiter = $container->get(RateLimiter::class);
+   $this->language = $container->get(Language::class);
   }
 
   public function someTest(int $mynum): Response {
@@ -401,6 +404,8 @@ class ExampleController  {
         return (new Response)->html($output);
     }
 
-
+    public function languageExample(): Response {
+       return (new Response)->html($this->language->translate("user.profile", "foobar", 8));
+    }
 }
 

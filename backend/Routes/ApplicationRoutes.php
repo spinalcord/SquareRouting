@@ -38,6 +38,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/template-example', ExampleController::class, 'templateExample');
         $route->get('/account-example', AuthenticationController::class, 'accountExample');
         
+        $route->get('/language-example', ExampleController::class, 'languageExample');
 
         // Post Example
         $route->post('/post-example', ExampleController::class, 'handlePostRequest');

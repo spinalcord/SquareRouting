@@ -2,6 +2,7 @@
 
 use SquareRouting\Core\Account;
 use SquareRouting\Core\DotEnv;
+use SquareRouting\Core\Language;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Cache;
 use SquareRouting\Routes\ApplicationRoutes;
@@ -28,6 +29,7 @@ $cacheLocation =__DIR__ . "/../backend/Cache";
 $templateLocation =__DIR__ . "/../backend/Templates/";
 $sqliteFileLocation = __DIR__ . "/../backend/Database/";
 $rateLimitTempFileLocation = $cacheLocation . "/rate_limit.json";
+$languagesLocation = __DIR__ . "/../backend/Languages/";
 $container = new DependencyContainer();
 
 $container->register(DotEnv::class, parameters: ['path' => $envFileLocation ]);
@@ -53,6 +55,10 @@ $view = $container->get(View::class);
 // Auth
 $container->register(Account::class, parameters: ['container' => $container ]);
 $account = $container->get(Account::class); 
+
+// Languages
+$container->register(Language::class, parameters: ['languageDirectory' => $languagesLocation, "defaultLanguage" => empty($_SESSION['language']) ?  $dotEnv->get("DEFAULT_LANGUAGE") : $_SESSION['language']]);
+$language = $container->get(Language::class); 
 
 ////////////////////////////////////
 // Cors protection (add your domain to the array)

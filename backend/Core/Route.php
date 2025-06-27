@@ -21,14 +21,17 @@ class Route
         'day' => '(?:0[1-9]|[12][0-9]|3[01])',
         'bool' => '(?:true|false|1|0|yes|no)',
         'hexcolor' => '#?(?:[0-9a-fA-F]{3}){1,2}',
+        'langcode'  => '[a-z]{2}(?:-[A-Z]{2})?',
         'path' => '.*' // New pattern for path parameters that can include slashes
     ];
     private Request $request;
     private DependencyContainer $container;
+    private Language $language;
 
     function __construct(DependencyContainer $container)
     {
         $this->request = $container->get(Request::class);
+        $this->language = $container->get(Language::class);
         $this->container = $container;
     }
 
@@ -139,6 +142,32 @@ class Route
         $segments = array_filter(explode('/', $path), fn($segment) => trim($segment) !== '');
         return '/' . implode('/', $segments);
     }
+
+    /**
+     * Extracts and sets the language from the request URI.
+     *
+     * @param string $requestUri The raw request URI.
+     * @return string The request URI with the language segment removed.
+     */
+    private function extractAndSetLanguageFromPath(string $requestUri): string {
+        $segments = array_filter(explode('/', $requestUri), fn($segment) => trim($segment) !== '');
+
+        if (empty($segments)) {
+            return '/';
+        }
+
+        $availableLanguages = $this->language->getAvailableLanguages();
+        $languageSegment = strtolower(array_shift($segments));
+
+        if (count($segments) === 0 && in_array($languageSegment, array_map('strtolower', $availableLanguages))) {
+            $this->language->setLanguage($languageSegment, true);
+        } elseif (in_array($languageSegment, array_map('strtolower', $availableLanguages))) {
+            $this->language->setLanguage($languageSegment);
+        } else {
+            array_unshift($segments, $languageSegment);
+        }
+        return '/' . implode('/', $segments);
+    }
     /**
      * @param array<int,mixed> $paramPatterns
      */
@@ -153,7 +182,8 @@ class Route
     public function dispatch(): bool {
         $requestUri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $requestMethod = $_SERVER['REQUEST_METHOD'];
-        $requestPath   = $this->normalizePath($requestUri);
+        $requestPath   = $this->extractAndSetLanguageFromPath($requestUri);
+        $requestPath   = $this->normalizePath($requestPath);
 
         foreach ($this->routes as $route) {
             if ($route['method'] === 'REROUTE' && $route['path'] === $requestPath) {

@@ -1,7 +1,7 @@
 ![](logo.jpg)
 # SquareRouting
 
-SquareRouting (Approx 0.17 Mb without comments) is a powerful, fast, and flexible PHP MVC micro-framework designed to provide a robust foundation for building web applications. It emphasizes clean URL structures, efficient routing, and includes essential features like rate limiting, caching, and a built-in account system.
+SquareRouting (Approx 0.2 Mb without comments) is a powerful, fast, and flexible PHP MVC micro-framework designed to provide a robust foundation for building web applications. It emphasizes clean URL structures, efficient routing, and includes essential features like rate limiting, caching, and a built-in account system.
 
 ## Table of Contents
 - [Features](#features)
@@ -21,6 +21,7 @@ SquareRouting (Approx 0.17 Mb without comments) is a powerful, fast, and flexibl
         - [Database Operations](#database-operations)
         - [Account System](#account-system)
         - [Template Engine (Views)](#template-engine-views)
+        - [Language Support](#language-support)
     - [Response Handling](#response-handling)
         - [HTML Page Example](#html-page-example)
         - [Redirection Example](#redirection-example)
@@ -28,6 +29,7 @@ SquareRouting (Approx 0.17 Mb without comments) is a powerful, fast, and flexibl
 - [License](#license)
 
 ## Features
+*   **Language Support**: Advanced langauge support via route segements (e.g. http://localhost:8000/en)
 *   **Flexible Routing**: Define routes for GET, POST, PUT, DELETE, PATCH, and REROUTE (redirection) methods.
 *   **Path Parameters**: Supports dynamic URL segments with predefined patterns (e.g., `num`, `alpha`, `slug`) and a special `:path` parameter for capturing entire sub-paths, including slashes.
 *   **Route Filters**: Apply 'before' and 'after' filters to routes for tasks like authentication, logging, or data manipulation. Filters are classes with `before` and `after` methods that receive the `DependencyContainer`.
@@ -622,6 +624,31 @@ class ExampleController {
 </html>
 ```
 
+#### Language Support
+Define your languages in the language folder. Set the default langauge in the `.env` file.
+
+The first segment of your route path changes your language but routes work still like intended:
+
+```
+English: http://localhost:8000/en/language-example
+German: http://localhost:8000/de/language-example
+Default (Englisch): http://localhost:8000/language-example
+```
+
+You cann also use the session to change the default langauge, this is usefull if a user want's to use his own language. You just need to call a single segment route with your langauge
+
+```
+German: http://localhost:8000/de -> Default langauge is now german for specefic visitor.
+```
+
+If you call http://localhost:8000/language-example again, the visitor sees the page with German translations. Routes are still intact, which means you can execute a function call alongside the language change, which is recommended to give user feedback.
+
+```php
+$route->get('/:mycode', SomeController::class, 'languageChanged', ['mycode' => 'langcode'] );
+```
+
+
+
 ### Response Handling
 
 #### HTML Page Example
@@ -652,7 +679,7 @@ The `redirectToGoogle` method shows how to perform a redirection to an external 
 class ExampleController {
     // ...
     public function redirectToGoogle(): Response {
-        return (new Response)->reroute('https://www.google.com');
+        return (new Response)->redirect('https://www.google.com');
     }
     // ...
 }
