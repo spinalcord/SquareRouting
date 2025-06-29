@@ -20,6 +20,7 @@ SquareRouting (Approx 0.2 Mb without comments) is a powerful, fast, and flexible
         - [Input Validation](#input-validation)
         - [Database Operations](#database-operations)
         - [Account System](#account-system)
+        - [ORM-like Table Generation](#orm-like-table-generation)
         - [Template Engine (Views)](#template-engine-views)
         - [Language Support](#language-support)
     - [Response Handling](#response-handling)
@@ -422,6 +423,77 @@ class ExampleController
         }
 
         return (new Response)->json($results, 200);
+    }
+}
+```
+
+#### ORM-like Table Generation
+
+SquareRouting provides an ORM-like approach to define your database schema programmatically using the `Table`, `Column`, `ColumnType`, `ForeignKey`, and `ForeignKeyAction` classes. This allows you to define tables, columns, their types, constraints, and relationships in a clear, object-oriented manner, and then generate the corresponding SQL for different database dialects (e.g., MySQL, SQLite).
+
+**Key Features:**
+*   **Object-Oriented Schema Definition**: Define tables and columns as PHP objects.
+*   **Column Types**: Use `ColumnType` enum for standard SQL data types (e.g., `INT`, `VARCHAR`, `TEXT`, `BOOLEAN`, `DATETIME`, `DECIMAL`, `JSON`).
+*   **Column Properties**: Configure properties like `autoIncrement`, `length`, `nullable`, `default`.
+*   **Foreign Key Management**: Define relationships between tables with `ForeignKey` and specify `onDelete` and `onUpdate` actions (`CASCADE`, `SET_NULL`, `RESTRICT`).
+*   **SQL Generation**: Automatically generate `CREATE TABLE` SQL statements for different database dialects.
+
+**Usage Example:**
+
+```php
+// backend/Controllers/ExampleController.php (Simplified)
+namespace SquareRouting\Controllers;
+
+use SquareRouting\Core\Database\ColumnType;
+use SquareRouting\Core\Database\ForeignKey;
+use SquareRouting\Core\Database\ForeignKeyAction;
+use SquareRouting\Core\Database\Table;
+use SquareRouting\Core\Database\DatabaseDialect; // For specifying dialect
+use SquareRouting\Core\Response;
+
+class ExampleController {
+    // ... constructor and other methods ...
+
+    public function tableExample(): Response {
+        // Define 'categories' table
+        $categories = new Table('categories');
+        $categories->id = ColumnType::INT;
+        $categories->name = ColumnType::VARCHAR;
+        $categories->description = ColumnType::TEXT;
+
+        $categories->id->autoIncrement = true;
+        $categories->name->length = 100;
+        $categories->name->nullable = false;
+
+        // Define 'products' table
+        $products = new Table('products');
+        $products->id = ColumnType::INT;
+        $products->categoryId = ColumnType::INT; // Foreign key column
+        $products->name = ColumnType::VARCHAR;
+        $products->price = ColumnType::DECIMAL;
+
+        $products->id->autoIncrement = true;
+        $products->name->length = 255;
+        $products->name->nullable = false;
+        $products->price->nullable = false;
+        $products->price->default = 0.00;
+
+        // Define Foreign Key relationship
+        $products->categoryId->foreignKey = new ForeignKey($categories, $categories->id);
+        $products->categoryId->foreignKey->onDelete = ForeignKeyAction::CASCADE; // If category deleted, products also deleted
+        $products->categoryId->nullable = false;
+
+        // Generate SQL for MySQL (default)
+        echo "=== CATEGORIES (MySQL) ===\n";
+        echo $categories->toSQL();
+        echo "\n\n";
+
+        // Generate SQL for SQLite
+        echo "=== PRODUCTS (SQLite) ===\n";
+        echo $products->toSQL(DatabaseDialect::SQLITE);
+        echo "\n\n";
+
+        return (new Response)->html("Table generation example output in console.");
     }
 }
 ```

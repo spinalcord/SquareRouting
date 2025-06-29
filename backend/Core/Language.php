@@ -33,7 +33,8 @@ class Language
         string $languageDirectory, 
         string $defaultLanguage = 'en',
         string $fallbackLanguage = 'en'
-    ) {
+    )
+    {
         $this->languageDirectory = rtrim($languageDirectory, '/\\');
         $this->currentLanguage = $defaultLanguage;
         $this->fallbackLanguage = $fallbackLanguage;

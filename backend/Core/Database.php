@@ -8,6 +8,7 @@ use PDO;
 use PDOStatement;
 use PDOException;
 use RuntimeException;
+use SquareRouting\Core\Database\DatabaseDialect;
 
 class Database
 {
@@ -15,10 +16,14 @@ class Database
     private bool $inTransaction = false;
     private array $queryLog = [];
     private bool $enableQueryLogging = false;
+    public DatabaseDialect $type = DatabaseDialect::MYSQL;
 
     public function __construct(DotEnv $dotEnv, string $sqlitePath = "")
     {
-        $dbType = $dotEnv->get('DB_CONNECTION', 'mysql');
+        $dbType =  $dotEnv->get('DB_CONNECTION', 'mysql');
+
+
+
         $dsn = $this->buildDsn($dbType, $dotEnv, $sqlitePath);
         
         try {
@@ -36,7 +41,16 @@ class Database
 
     private function buildDsn(string $dbType, DotEnv $dotEnv, string $sqlitePath): string
     {
-        return match (strtolower($dbType)) {
+        $dbType = strtolower($dbType);
+        if ($dbType == "mysql"){
+          $this->type == DatabaseDialect::MYSQL;
+        }
+        elseif ($dbType == "sqlite") {
+          $this->type == DatabaseDialect::SQLITE;
+         
+        }
+
+        return match ($dbType) {
             'mysql' => $this->buildMysqlDsn($dotEnv),
             'sqlite' => $this->buildSqliteDsn($dotEnv, $sqlitePath),
             default => throw new InvalidArgumentException("Unsupported database type: {$dbType}. Supported types are 'mysql' and 'sqlite'.")

@@ -22,6 +22,7 @@ class ApplicationRoutes implements RoutableInterface
         // Reroute Example
         $route->reroute('/reroute-test', '/google');
         
+        $route->get('/table-example', ExampleController::class, 'tableExample');
         // Get Examples
         $route->get('/html', ExampleController::class, 'showHtmlPage');
         $route->get('/test/:myid', ExampleController::class, 'someTest', ['myid' => 'num']);
