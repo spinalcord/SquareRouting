@@ -184,8 +184,8 @@ public function toSQL(DatabaseDialect $dialect = DatabaseDialect::MYSQL): string
     if ($this->default !== null) {
         $sql .= " DEFAULT ";
         if ($this->default === 'CURRENT_TIMESTAMP') {
-            $sql .= $dialect === DatabaseDialect::MYSQL ? 'CURRENT_TIMESTAMP' : "datetime('now')";
-        } elseif (is_string($this->default)) {
+    $sql .= $dialect === DatabaseDialect::MYSQL ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+} elseif (is_string($this->default)) {
             $sql .= "'{$this->default}'";
         } elseif (is_bool($this->default)) {
             $sql .= $this->default ? '1' : '0';
@@ -194,21 +194,19 @@ public function toSQL(DatabaseDialect $dialect = DatabaseDialect::MYSQL): string
         }
     }
     
-    // AUTO_INCREMENT
-    if ($this->autoIncrement) {
-        if ($dialect === DatabaseDialect::MYSQL) {
-            $sql .= " AUTO_INCREMENT";
-        }
-    }
-    
-    // PRIMARY KEY
+    // PRIMARY KEY and AUTO_INCREMENT
     if ($this->primaryKey) {
         if ($dialect === DatabaseDialect::MYSQL) {
             $sql .= " PRIMARY KEY";
-        } elseif ($dialect === DatabaseDialect::SQLITE && $this->autoIncrement) {
-            $sql .= " PRIMARY KEY AUTOINCREMENT";
+            if ($this->autoIncrement) {
+                $sql .= " AUTO_INCREMENT";
+            }
         } elseif ($dialect === DatabaseDialect::SQLITE) {
-            $sql .= " PRIMARY KEY";
+            if ($this->autoIncrement) {
+                $sql .= " PRIMARY KEY AUTOINCREMENT";
+            } else {
+                $sql .= " PRIMARY KEY";
+            }
         }
     }
     

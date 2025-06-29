@@ -9,6 +9,7 @@ use PDOStatement;
 use PDOException;
 use RuntimeException;
 use SquareRouting\Core\Database\DatabaseDialect;
+use SquareRouting\Core\Database\Table;
 
 class Database
 {
@@ -22,7 +23,12 @@ class Database
     {
         $dbType =  $dotEnv->get('DB_CONNECTION', 'mysql');
 
-
+        if ($dbType == "mysql"){
+          $this->type = DatabaseDialect::MYSQL;
+        }
+        elseif ($dbType == "sqlite") {
+          $this->type = DatabaseDialect::SQLITE;
+        }
 
         $dsn = $this->buildDsn($dbType, $dotEnv, $sqlitePath);
         
@@ -42,13 +48,6 @@ class Database
     private function buildDsn(string $dbType, DotEnv $dotEnv, string $sqlitePath): string
     {
         $dbType = strtolower($dbType);
-        if ($dbType == "mysql"){
-          $this->type == DatabaseDialect::MYSQL;
-        }
-        elseif ($dbType == "sqlite") {
-          $this->type == DatabaseDialect::SQLITE;
-         
-        }
 
         return match ($dbType) {
             'mysql' => $this->buildMysqlDsn($dotEnv),
@@ -438,6 +437,37 @@ class Database
         } catch (PDOException $e) {
             // Connection is not active or query failed
             return false;
+        }
+    }
+
+    /**
+     * Creates a table in the database based on a Table object.
+     *
+     * @param Table $table The Table object representing the table to create.
+     * @return bool True if the table was created successfully, false otherwise.
+     * @throws RuntimeException If the table already exists or creation fails.
+     */
+    public function createTable(Table $table): bool
+    {
+        $tableName = $table->getTableName();
+        
+        // Debug: Ausgabe des aktuellen Dialekts
+        error_log("Database type: " . ($this->type->value ?? 'undefined'));
+        
+        if ($this->tableExists($tableName)) {
+            throw new RuntimeException("Table '{$tableName}' already exists.");
+        }
+
+        $sql = $table->toSQL($this->type);
+        
+        // Debug: Ausgabe der generierten SQL
+        error_log("Generated SQL: " . $sql);
+        
+        try {
+            $this->query($sql);
+            return true;
+        } catch (PDOException $e) {
+            throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int)$e->getCode(), $e);
         }
     }
 }

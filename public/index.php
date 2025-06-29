@@ -45,6 +45,7 @@ $cache = $container->get(Cache::class);
 $container->register(RateLimiter::class,parameters: ['dataFile' => $rateLimitTempFileLocation]);
 $rateLimiter = $container->get(RateLimiter::class); 
 
+
 // Database connection
 $container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation ]);
 $db = $container->get(Database::class); 

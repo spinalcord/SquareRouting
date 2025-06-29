@@ -180,40 +180,10 @@ $orderItems->unitPrice->default = 0.00;
 $orderItems->totalPrice->nullable = false;
 $orderItems->totalPrice->default = 0.00;
 
-// Generate SQL for all tables
-echo "=== CATEGORIES (MySQL) ===\n";
-echo $categories->toSQL();
-echo "\n\n";
-echo "=== CATEGORIES (SQLite) ===\n";
-echo $categories->toSQL(DatabaseDialect::SQLITE);
-echo "\n\n";
+echo $this->db->type->value;
+$this->db->createTable($categories);
 
-echo "=== MANUFACTURERS (MySQL) ===\n";
-echo $manufacturers->toSQL();
-echo "\n\n";
-echo "=== MANUFACTURERS (SQLite) ===\n";
-echo $manufacturers->toSQL(DatabaseDialect::SQLITE);
-echo "\n\n";
 
-echo "=== PRODUCTS (MySQL) ===\n";
-echo $products->toSQL();
-echo "\n\n";
-echo "=== PRODUCTS (SQLite) ===\n";
-echo $products->toSQL(DatabaseDialect::SQLITE);
-echo "\n\n";
-
-echo "=== ORDERS (MySQL) ===\n";
-echo $orders->toSQL();
-echo "\n\n";
-echo "=== ORDERS (SQLite) ===\n";
-echo $orders->toSQL(DatabaseDialect::SQLITE);
-echo "\n\n";
-
-echo "=== ORDER ITEMS (MySQL) ===\n";
-echo $orderItems->toSQL();
-echo "\n\n";
-echo "=== ORDER ITEMS (SQLite) ===\n";
-echo $orderItems->toSQL(DatabaseDialect::SQLITE);
 
 return (new Response)->html("");
  } 
