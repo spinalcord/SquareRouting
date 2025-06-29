@@ -45,7 +45,7 @@ class AuthenticationController {
       $testEmail = 'test_user_' . uniqid() . '@example.com';
       $testPassword = 'Password123';
       try {
-          $registered = $this->account->register($testEmail, $testPassword, ['first_name' => 'Test', 'last_name' => 'User']);
+          $registered = $this->account->register($testEmail, $testPassword, ['username' => 'test']);
           if ($registered) {
               $messages[] = "User '{$testEmail}' registered successfully.";
           } else {

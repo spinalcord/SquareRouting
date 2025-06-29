@@ -6,12 +6,13 @@ use SquareRouting\Core\Database\Column;
 use SquareRouting\Core\Database\DatabaseDialect;
 use SquareRouting\Core\Database\ForeignKey;
 use SquareRouting\Core\Database\ForeignKeyAction;
+use SquareRouting\Core\Database\ColumnType;
 use SquareRouting\Core\Database\Table;
 use SquareRouting\Core\Language;
 use SquareRouting\Core\View;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\RateLimiter;
-use SquareRouting\Core\Database\ColumnType;
+use SquareRouting\Core\Account;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response; // Important for the Return Type Hint
@@ -35,6 +36,7 @@ class ExampleController  {
   public View $view;
   public Language $language;
   public RateLimiter $rateLimiter;
+  public Account $account;
 
   public function __construct(DependencyContainer $container) {
    $this->cache = $container->get(Cache::class);
@@ -44,6 +46,7 @@ class ExampleController  {
    $this->view = $container->get(View::class);
    $this->rateLimiter = $container->get(RateLimiter::class);
    $this->language = $container->get(Language::class);
+   $this->account = $container->get(Account::class);
   }
 
  public function tableExample(): Response {
@@ -180,15 +183,20 @@ $orderItems->unitPrice->default = 0.00;
 $orderItems->totalPrice->nullable = false;
 $orderItems->totalPrice->default = 0.00;
 
-echo $this->db->type->value;
-$this->db->createTable($categories);
+
+$this->db->createTableIfNotExists($categories);
 
 
 
-return (new Response)->html("");
+return (new Response)->html("Created categories table");
+
  } 
 
 
+ public function home(): Response
+ {
+    return (new Response)->html("hello");
+ }
 
   public function someTest(int $mynum): Response {
     $data = [
@@ -557,5 +565,7 @@ return (new Response)->html("");
     public function languageExample(): Response {
        return (new Response)->html($this->language->translate("user.profile", "foobar", 8));
     }
+
+ 
 }
 

@@ -6,15 +6,19 @@ namespace SquareRouting\Core;
 
 use RuntimeException;
 use InvalidArgumentException;
-
+use SquareRouting\Core\Database\DatabaseDialect;
+use SquareRouting\Core\Database\ForeignKey;
+use SquareRouting\Core\Database\ForeignKeyAction;
+use SquareRouting\Core\Database\ColumnType;
+use SquareRouting\Core\Database\Table;
 class Account
 {
     private Database $db;
     private string $tableName = 'users';
-    private string $sessionKey = 'user_id';
+    private string $sessionKey = 'userId';
     private int $passwordMinLength = 8;
     private RateLimiter $rateLimiter;
-    private string $loginRateLimitKey = 'login_attempts';
+    private string $loginRateLimitKey = 'loginAttempts';
 
     public function __construct(DependencyContainer $container)
     {
@@ -35,8 +39,6 @@ class Account
      */
     public function register(string $email, string $password, array $additionalData = []): bool
     {
-        $this->validateEmail($email);
-        $this->validatePassword($password);
 
         if ($this->emailExists($email)) {
             throw new InvalidArgumentException('Email address already exists');
@@ -45,8 +47,8 @@ class Account
         $userData = array_merge([
             'email' => strtolower(trim($email)),
             'password' => $this->hashPassword($password),
-            'created_at' => date('Y-m-d H:i:s'),
-            'email_verified' => 0,
+            'createdAt' => date('Y-m-d H:i:s'),
+            'emailVerified' => 0,
             'status' => 'active'
         ], $additionalData);
 
@@ -60,7 +62,6 @@ class Account
      */
     public function login(string $email, string $password, bool $rememberMe = false): bool
     {
-        $this->validateEmail($email);
         
         if (empty($password)) {
             throw new InvalidArgumentException('Password cannot be empty');
@@ -116,8 +117,8 @@ class Account
         }
 
         // Check remember me token
-        if (isset($_COOKIE['remember_token'])) {
-            return $this->validateRememberToken($_COOKIE['remember_token']);
+        if (isset($_COOKIE['rememberToken'])) {
+            return $this->validateRememberToken($_COOKIE['rememberToken']);
         }
 
         return false;
@@ -160,11 +161,10 @@ class Account
             throw new InvalidArgumentException('Current password is incorrect');
         }
 
-        $this->validatePassword($newPassword);
 
         $result = $this->db->update($this->tableName, [
             'password' => $this->hashPassword($newPassword),
-            'updated_at' => date('Y-m-d H:i:s')
+            'updatedAt' => date('Y-m-d H:i:s')
         ], ['id' => $userId]);
 
         return $result > 0;
@@ -175,7 +175,6 @@ class Account
      */
     public function resetPassword(string $token, string $newPassword): bool
     {
-        $this->validatePassword($newPassword);
 
         $user = $this->getUserByResetToken($token);
         if (!$user) {
@@ -184,9 +183,9 @@ class Account
 
         $result = $this->db->update($this->tableName, [
             'password' => $this->hashPassword($newPassword),
-            'reset_token' => null,
-            'reset_token_expires' => null,
-            'updated_at' => date('Y-m-d H:i:s')
+            'resetToken' => null,
+            'resetTokenExpires' => null,
+            'updatedAt' => date('Y-m-d H:i:s')
         ], ['id' => $user['id']]);
 
         return $result > 0;
@@ -197,7 +196,6 @@ class Account
      */
     public function generateResetToken(string $email): string
     {
-        $this->validateEmail($email);
         $email = strtolower(trim($email));
 
         $user = $this->getUserByEmail($email);
@@ -209,9 +207,9 @@ class Account
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
         $this->db->update($this->tableName, [
-            'reset_token' => $token,
-            'reset_token_expires' => $expires,
-            'updated_at' => date('Y-m-d H:i:s')
+            'resetToken' => $token,
+            'resetTokenExpires' => $expires,
+            'updatedAt' => date('Y-m-d H:i:s')
         ], ['id' => $user['id']]);
 
         return $token;
@@ -229,10 +227,9 @@ class Account
         }
 
         // Remove sensitive fields
-        unset($data['id'], $data['password'], $data['reset_token'], $data['reset_token_expires']);
+        unset($data['id'], $data['password'], $data['resetToken'], $data['resetTokenExpires']);
 
         if (isset($data['email'])) {
-            $this->validateEmail($data['email']);
             $data['email'] = strtolower(trim($data['email']));
             
             if ($this->emailExistsForOtherUser($data['email'], $userId)) {
@@ -240,7 +237,7 @@ class Account
             }
         }
 
-        $data['updated_at'] = date('Y-m-d H:i:s');
+        $data['updatedAt'] = date('Y-m-d H:i:s');
 
         $result = $this->db->update($this->tableName, $data, ['id' => $userId]);
         return $result > 0;
@@ -277,9 +274,9 @@ class Account
         }
 
         $result = $this->db->update($this->tableName, [
-            'email_verified' => 1,
-            'email_verification_token' => null,
-            'updated_at' => date('Y-m-d H:i:s')
+            'emailVerified' => 1,
+            'emailVerificationToken' => null,
+            'updatedAt' => date('Y-m-d H:i:s')
         ], ['id' => $user['id']]);
 
         return $result > 0;
@@ -299,8 +296,8 @@ class Account
         $token = bin2hex(random_bytes(32));
 
         $this->db->update($this->tableName, [
-            'email_verification_token' => $token,
-            'updated_at' => date('Y-m-d H:i:s')
+            'emailVerificationToken' => $token,
+            'updatedAt' => date('Y-m-d H:i:s')
         ], ['id' => $userId]);
 
         return $token;
@@ -308,23 +305,6 @@ class Account
 
     // Private helper methods
 
-    private function validateEmail(string $email): void
-    {
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new InvalidArgumentException('Invalid email address');
-        }
-    }
-
-    private function validatePassword(string $password): void
-    {
-        if (strlen($password) < $this->passwordMinLength) {
-            throw new InvalidArgumentException("Password must be at least {$this->passwordMinLength} characters long");
-        }
-
-        if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', $password)) {
-            throw new InvalidArgumentException('Password must contain at least one lowercase letter, one uppercase letter, and one digit');
-        }
-    }
 
     private function hashPassword(string $password): string
     {
@@ -343,8 +323,8 @@ class Account
 
     private function emailExistsForOtherUser(string $email, int $excludeUserId): bool
     {
-        $sql = "SELECT id FROM {$this->tableName} WHERE email = :email AND id != :user_id LIMIT 1";
-        return $this->db->fetch($sql, ['email' => $email, 'user_id' => $excludeUserId]) !== false;
+        $sql = "SELECT id FROM {$this->tableName} WHERE email = :email AND id != :userId LIMIT 1";
+        return $this->db->fetch($sql, ['email' => $email, 'userId' => $excludeUserId]) !== false;
     }
 
     private function userExists(int $userId): bool
@@ -366,14 +346,14 @@ class Account
 
     private function getUserByResetToken(string $token): ?array
     {
-        $sql = "SELECT * FROM {$this->tableName} WHERE reset_token = :token AND reset_token_expires > :now";
+        $sql = "SELECT * FROM {$this->tableName} WHERE resetToken = :token AND resetTokenExpires > :now";
         $user = $this->db->fetch($sql, ['token' => $token, 'now' => date('Y-m-d H:i:s')]);
         return $user ?: null;
     }
 
     private function getUserByVerificationToken(string $token): ?array
     {
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE email_verification_token = :token", ['token' => $token]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE emailVerificationToken = :token", ['token' => $token]);
         return $user ?: null;
     }
 
@@ -406,26 +386,26 @@ class Account
         $expires = time() + (30 * 24 * 60 * 60); // 30 days
 
         $this->db->update($this->tableName, [
-            'remember_token' => hash('sha256', $token),
-            'updated_at' => date('Y-m-d H:i:s')
+            'rememberToken' => hash('sha256', $token),
+            'updatedAt' => date('Y-m-d H:i:s')
         ], ['id' => $userId]);
 
-        setcookie('remember_token', $token, $expires, '/', '', true, true);
+        setcookie('rememberToken', $token, $expires, '/', '', true, true);
     }
 
     private function clearRememberToken(): void
     {
-        if (isset($_COOKIE['remember_token'])) {
-            $hashedToken = hash('sha256', $_COOKIE['remember_token']);
-            $this->db->update($this->tableName, ['remember_token' => null], ['remember_token' => $hashedToken]);
-            setcookie('remember_token', '', time() - 3600, '/', '', true, true);
+        if (isset($_COOKIE['rememberToken'])) {
+            $hashedToken = hash('sha256', $_COOKIE['rememberToken']);
+            $this->db->update($this->tableName, ['rememberToken' => null], ['rememberToken' => $hashedToken]);
+            setcookie('rememberToken', '', time() - 3600, '/', '', true, true);
         }
     }
 
     private function validateRememberToken(string $token): bool
     {
         $hashedToken = hash('sha256', $token);
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE remember_token = :token", ['token' => $hashedToken]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE rememberToken = :token", ['token' => $hashedToken]);
         
         if ($user) {
             $this->startSession($user['id']);
@@ -438,62 +418,80 @@ class Account
     private function updateLastLogin(int $userId): void
     {
         $this->db->update($this->tableName, [
-            'last_login' => date('Y-m-d H:i:s')
+            'lastLogin' => date('Y-m-d H:i:s')
         ], ['id' => $userId]);
     }
 
-
     private function ensureUserTableExists(): void
     {
-        if (!$this->db->tableExists($this->tableName)) {
             $this->createUserTable();
-        }
     }
 
     private function createUserTable(): void
     {
-        $driver = $this->db->getPdo()->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        // Create users table using ORM-style pattern
+        $users = new Table('users');
         
-        $sql = match ($driver) {
-            'mysql' => "CREATE TABLE {$this->tableName} (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                first_name VARCHAR(100),
-                last_name VARCHAR(100),
-                status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
-                email_verified TINYINT(1) DEFAULT 0,
-                email_verification_token VARCHAR(64),
-                reset_token VARCHAR(64),
-                reset_token_expires DATETIME,
-                remember_token VARCHAR(64),
-                last_login DATETIME,
-                created_at DATETIME NOT NULL,
-                updated_at DATETIME,
-                INDEX idx_email (email),
-                INDEX idx_reset_token (reset_token),
-                INDEX idx_remember_token (remember_token)
-            )",
-            'sqlite' => "CREATE TABLE {$this->tableName} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                first_name TEXT,
-                last_name TEXT,
-                status TEXT DEFAULT 'active',
-                email_verified INTEGER DEFAULT 0,
-                email_verification_token TEXT,
-                reset_token TEXT,
-                reset_token_expires TEXT,
-                remember_token TEXT,
-                last_login TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT
-            )",
-            default => throw new RuntimeException("Unsupported database driver: {$driver}")
-        };
+        // Define columns
+        $users->id = ColumnType::INT;
+        $users->email = ColumnType::VARCHAR;
+        $users->password = ColumnType::VARCHAR;
+        $users->username = ColumnType::VARCHAR;
+        $users->status = ColumnType::VARCHAR;
+        $users->emailVerified = ColumnType::BOOLEAN;
+        $users->emailVerificationToken = ColumnType::VARCHAR;
+        $users->resetToken = ColumnType::VARCHAR;
+        $users->resetTokenExpires = ColumnType::DATETIME;
+        $users->rememberToken = ColumnType::VARCHAR;
+        $users->lastLogin = ColumnType::DATETIME;
+        $users->createdAt = ColumnType::DATETIME;
+        $users->updatedAt = ColumnType::DATETIME;
 
-        $this->db->query($sql);
+        // Configure id column
+        $users->id->autoIncrement = true;
+
+        // Configure email column
+        $users->email->length = 255;
+        $users->email->nullable = false;
+        $users->email->unique = true;
+
+        // Configure password column
+        $users->password->length = 255;
+        $users->password->nullable = false;
+
+        // Configure username column
+        $users->username->length = 100;
+        $users->username->nullable = false;
+        $users->username->unique = true;
+
+        // Configure status column
+        $users->status->length = 20;
+        $users->status->nullable = false;
+        $users->status->default = 'active';
+
+        // Configure email verification
+        $users->emailVerified->nullable = false;
+        $users->emailVerified->default = false;
+        $users->emailVerificationToken->length = 64;
+        $users->emailVerificationToken->nullable = true;
+
+        // Configure reset token
+        $users->resetToken->length = 64;
+        $users->resetToken->nullable = true;
+        $users->resetTokenExpires->nullable = true;
+
+        // Configure remember token
+        $users->rememberToken->length = 64;
+        $users->rememberToken->nullable = true;
+
+        // Configure timestamps
+        $users->lastLogin->nullable = true;
+        $users->createdAt->nullable = false;
+        $users->createdAt->default = 'CURRENT_TIMESTAMP';
+        $users->updatedAt->nullable = true;
+
+        // Create the table
+        $this->db->createTableIfNotExists($users);
     }
 
     // Configuration methods
@@ -515,5 +513,4 @@ class Account
         $this->passwordMinLength = $length;
         return $this;
     }
-
 }

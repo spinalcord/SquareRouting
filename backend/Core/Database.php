@@ -470,4 +470,36 @@ class Database
             throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int)$e->getCode(), $e);
         }
     }
+    
+    /**
+     * Creates a table in the database based on a Table object if it doesn't already exist.
+     *
+     * @param Table $table The Table object representing the table to create.
+     * @return bool True if the table was created, false if it already existed.
+     * @throws RuntimeException If table creation fails.
+     */
+    public function createTableIfNotExists(Table $table): bool
+    {
+        $tableName = $table->getTableName();
+        
+        // Debug: Ausgabe des aktuellen Dialekts
+        error_log("Database type: " . ($this->type->value ?? 'undefined'));
+        
+        // Check if table already exists
+        if ($this->tableExists($tableName)) {
+            return false; // Table already exists, nothing to do
+        }
+
+        $sql = $table->toSQL($this->type);
+        
+        // Debug: Ausgabe der generierten SQL
+        error_log("Generated SQL: " . $sql);
+        
+        try {
+            $this->query($sql);
+            return true; // Table was created successfully
+        } catch (PDOException $e) {
+            throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int)$e->getCode(), $e);
+        }
+    }
 }
