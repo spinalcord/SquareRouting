@@ -19,17 +19,17 @@ final class DotEnv
     /**
      * In-memory cache for the parsed .env data.
      * Null until the file is loaded for the first time.
+     *
      * @var array<string, string>|null
      */
     private ?array $data = null;
 
     /**
-     * @param string $path The absolute path to the .env file.
+     * @param  string  $path  The absolute path to the .env file.
      */
     public function __construct(
         private readonly string $path
-    ) {
-    }
+    ) {}
 
     /*
     //Static factory method for a more fluent interface.
@@ -39,12 +39,11 @@ final class DotEnv
     }
     */
 
-    
     /**
      * Retrieves an environment variable by its key.
      *
-     * @param string $key The variable key.
-     * @param mixed $default A default value to return if the key is not found.
+     * @param  string  $key  The variable key.
+     * @param  mixed  $default  A default value to return if the key is not found.
      * @return string|mixed The variable value or the default.
      */
     public function get(string $key, mixed $default = null): mixed
@@ -61,12 +60,12 @@ final class DotEnv
      * Sets an environment variable in the in-memory cache.
      * Note: This does not save to the file until save() is called.
      *
-     * @param string $key The variable key (must be alphanumeric with underscores).
-     * @param string|int|bool|null $value The value to set.
+     * @param  string  $key  The variable key (must be alphanumeric with underscores).
+     * @param  string|int|bool|null  $value  The value to set.
      */
     public function set(string $key, string|int|bool|null $value): void
     {
-        if (!preg_match('/^[A-Z0-9_]+$/i', $key)) {
+        if (! preg_match('/^[A-Z0-9_]+$/i', $key)) {
             throw new InvalidArgumentException(sprintf('The key "%s" is invalid. Only alphanumeric characters and underscores are allowed.', $key));
         }
 
@@ -94,7 +93,7 @@ final class DotEnv
 
         $currentLines = file_exists($this->path) ? file($this->path) : [];
         if ($currentLines === false) {
-             throw new RuntimeException(sprintf('Could not read file for saving: %s', $this->path));
+            throw new RuntimeException(sprintf('Could not read file for saving: %s', $this->path));
         }
 
         $keysToUpdate = $this->data;
@@ -107,6 +106,7 @@ final class DotEnv
 
             if (empty($trimmedLine) || str_starts_with($trimmedLine, '#')) {
                 $newLines[] = $line;
+
                 continue;
             }
 
@@ -126,16 +126,16 @@ final class DotEnv
         }
 
         // Add any new keys that weren't in the original file
-        if (!empty($keysToUpdate)) {
-             // Add a blank line for separation if the file is not empty
-            if(!empty($newLines) && trim(end($newLines)) !== '') {
+        if (! empty($keysToUpdate)) {
+            // Add a blank line for separation if the file is not empty
+            if (! empty($newLines) && trim(end($newLines)) !== '') {
                 $newLines[] = '';
             }
             foreach ($keysToUpdate as $key => $value) {
                 $newLines[] = "{$key}={$value}";
             }
         }
-        
+
         $content = implode(PHP_EOL, $newLines);
 
         // Atomically write the file with an exclusive lock
@@ -153,7 +153,7 @@ final class DotEnv
     {
         $this->data = [];
 
-        if (!is_file($this->path) || !is_readable($this->path)) {
+        if (! is_file($this->path) || ! is_readable($this->path)) {
             // It's not an error if the file doesn't exist, it might be created later.
             // We just start with an empty data set.
             return;
@@ -171,7 +171,7 @@ final class DotEnv
             }
 
             // Split into key and value
-            if (!str_contains($line, '=')) {
+            if (! str_contains($line, '=')) {
                 continue; // Not a valid key-value pair
             }
 

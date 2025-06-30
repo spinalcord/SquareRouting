@@ -1,4 +1,5 @@
 <?php
+
 namespace SquareRouting\Core\Database;
 
 enum ColumnType: string

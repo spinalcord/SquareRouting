@@ -1,16 +1,18 @@
 <?php
 
 namespace SquareRouting\Core;
+
 use Exception;
 
 class Cache
 {
     public $cacheDir;
-    private $defaultTtl; // Time-to-live in seconds 
+
+    private $defaultTtl; // Time-to-live in seconds
 
     public function __construct(string $cacheDir, int $defaultTtl = 3600)
     {
-        $this->cacheDir = rtrim($cacheDir, '/\\') . '/'; 
+        $this->cacheDir = rtrim($cacheDir, '/\\') . '/';
         $this->defaultTtl = $defaultTtl;
         try {
             $this->ensureCacheDirExists();
@@ -18,19 +20,10 @@ class Cache
         }
     }
 
-    private function ensureCacheDirExists(): void
-    {
-        if (!is_dir($this->cacheDir)) {
-            if (!mkdir($this->cacheDir, 0777, true)) {
-                throw new Exception("Cache directory could not be created: {$this->cacheDir}");
-            }
-        }
-    }
-
     public function get(string $prefix, string $key, callable $callback, int $ttl = 0, array $callbackArgs = []): mixed
     {
-        $cacheFile = $this->getCacheFilePath($prefix,$key);
-        $ttl = $ttl ?? $this->defaultTtl; 
+        $cacheFile = $this->getCacheFilePath($prefix, $key);
+        $ttl = $ttl ?? $this->defaultTtl;
 
         if (file_exists($cacheFile) && (time() - filemtime($cacheFile) < $ttl)) {
             // Cache is valid, load
@@ -41,6 +34,7 @@ class Cache
 
             // Save data in cache
             $this->put($prefix, $key, $data);
+
             return $data;
         }
     }
@@ -51,13 +45,13 @@ class Cache
         file_put_contents($cacheFile, serialize($data));
     }
 
-
     public function delete(string $prefix, string $key): bool
     {
         $cacheFile = $this->getCacheFilePath($prefix, $key);
         if (file_exists($cacheFile)) {
             return unlink($cacheFile);
         }
+
         return false;
     }
 
@@ -68,7 +62,7 @@ class Cache
 
     public function clear(string $prefix = ''): void
     {
-        $files = glob($this->cacheDir . "cache_{$prefix}*");  
+        $files = glob($this->cacheDir . "cache_{$prefix}*");
         foreach ($files as $file) {
             if (is_file($file)) {
                 unlink($file);
@@ -76,9 +70,19 @@ class Cache
         }
     }
 
+    private function ensureCacheDirExists(): void
+    {
+        if (! is_dir($this->cacheDir)) {
+            if (! mkdir($this->cacheDir, 0777, true)) {
+                throw new Exception("Cache directory could not be created: {$this->cacheDir}");
+            }
+        }
+    }
+
     private function getCacheFilePath(string $prefix, string $key): string
     {
-        $key = md5($key); // Save key 
+        $key = md5($key); // Save key
+
         return $this->cacheDir . 'cache_' . $prefix . '_' . $key . '.cache';
     }
 }

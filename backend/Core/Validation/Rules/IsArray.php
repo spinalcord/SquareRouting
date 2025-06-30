@@ -8,7 +8,10 @@ final readonly class IsArray implements RuleInterface
 {
     public function validate(string $field, mixed $value, array $data): bool
     {
-        if ($value === null) return true;
+        if ($value === null) {
+            return true;
+        }
+
         return is_array($value);
     }
 

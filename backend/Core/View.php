@@ -42,12 +42,14 @@ class View
     public function set(string $key, mixed $value): self
     {
         $this->variables[$key] = $value;
+
         return $this;
     }
 
     public function setMultiple(array $variables): self
     {
         $this->variables = array_merge($this->variables, $variables);
+
         return $this;
     }
 
@@ -61,7 +63,7 @@ class View
         $this->setMultiple($variables);
         $templateFile = $this->templateDirectory . $template;
 
-        if (!file_exists($templateFile)) {
+        if (! file_exists($templateFile)) {
             throw new InvalidArgumentException("Template file not found: {$templateFile}");
         }
 
@@ -85,14 +87,51 @@ class View
                 file_put_contents($cacheFile, $compiledContent, LOCK_EX);
             }
         }
-        
+
         // Pass the compiled code (as a string) to the execution context
         return $this->executeCompiledCode($compiledContent);
     }
-    
+
     public function display(string $template, array $variables = []): void
     {
         echo $this->render($template, $variables);
+    }
+
+    public function clearCache(): self
+    {
+        if (! is_dir($this->cacheDirectory)) {
+            return $this;
+        }
+        $files = glob($this->cacheDirectory . '*.php');
+        if ($files) {
+            foreach ($files as $file) {
+                unlink($file);
+            }
+        }
+
+        return $this;
+    }
+
+    public function setCaching(bool $enabled): self
+    {
+        $this->cacheEnabled = $enabled;
+
+        return $this;
+    }
+
+    public function setAutoEscape(bool $enabled): self
+    {
+        $this->autoEscape = $enabled;
+
+        return $this;
+    }
+
+    /**
+     * This method is called from the parent template to display a block.
+     */
+    protected function displayBlock(string $name): void
+    {
+        echo $this->blocks[$name] ?? '';
     }
 
     /**
@@ -119,16 +158,16 @@ class View
                 case 'while':
                     return "<?php {$keyword}({$expression}): ?>";
 
-                // Statements without expressions
+                    // Statements without expressions
                 case 'else':
-                    return "<?php else: ?>";
+                    return '<?php else: ?>';
                 case 'endif':
                 case 'endfor':
                 case 'endforeach':
                 case 'endwhile':
                     return "<?php {$keyword}; ?>";
 
-                // Custom template functions
+                    // Custom template functions
                 case 'include':
                     return "<?= \$this->render({$expression}, \$this->variables) ?>";
                 case 'extends':
@@ -136,9 +175,9 @@ class View
                 case 'block':
                     return "<?php \$this->startBlock({$expression}); ?>";
                 case 'endblock':
-                    return "<?php \$this->endBlock(); ?>";
-                
-                // Fallback for simple PHP code: {% $var = 'value' %}
+                    return '<?php $this->endBlock(); ?>';
+
+                    // Fallback for simple PHP code: {% $var = 'value' %}
                 default:
                     return "<?php {$body}; ?>";
             }
@@ -151,12 +190,13 @@ class View
             // Handle raw output filter: {{ my_var|raw }}
             if (str_ends_with($expression, '|raw')) {
                 $expression = trim(substr($expression, 0, -4));
+
                 return "<?= {$expression} ?>";
             }
-            
+
             // Your original request for raw PHP: {{ ... }}
-            if (!str_starts_with($expression, '$')) {
-                 return "<?php {$expression} ?>";
+            if (! str_starts_with($expression, '$')) {
+                return "<?php {$expression} ?>";
             }
 
             // Default: Escaped output for {{ $... }}
@@ -176,7 +216,7 @@ class View
             eval('?>' . $code);
         } catch (Throwable $e) {
             ob_end_clean();
-            throw new RuntimeException("Template execution error: " . $e->getMessage(), 0, $e);
+            throw new RuntimeException('Template execution error: ' . $e->getMessage(), 0, $e);
         }
         $content = ob_get_clean();
 
@@ -191,9 +231,10 @@ class View
 
     private function escape(mixed $value): string
     {
-        if (!$this->autoEscape || $value === null) {
+        if (! $this->autoEscape || $value === null) {
             return (string) $value;
         }
+
         return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 
@@ -201,37 +242,11 @@ class View
 
     private function ensureCacheDirectory(): void
     {
-        if (!is_dir($this->cacheDirectory)) {
-            if (!mkdir($this->cacheDirectory, 0755, true) && !is_dir($this->cacheDirectory)) {
-                 throw new RuntimeException(sprintf('Directory "%s" was not created', $this->cacheDirectory));
+        if (! is_dir($this->cacheDirectory)) {
+            if (! mkdir($this->cacheDirectory, 0755, true) && ! is_dir($this->cacheDirectory)) {
+                throw new RuntimeException(sprintf('Directory "%s" was not created', $this->cacheDirectory));
             }
         }
-    }
-
-    public function clearCache(): self
-    {
-        if (!is_dir($this->cacheDirectory)) {
-            return $this;
-        }
-        $files = glob($this->cacheDirectory . '*.php');
-        if($files) {
-            foreach ($files as $file) {
-                unlink($file);
-            }
-        }
-        return $this;
-    }
-
-    public function setCaching(bool $enabled): self
-    {
-        $this->cacheEnabled = $enabled;
-        return $this;
-    }
-
-    public function setAutoEscape(bool $enabled): self
-    {
-        $this->autoEscape = $enabled;
-        return $this;
     }
 
     // --- Helper methods for Template Inheritance ---
@@ -247,8 +262,6 @@ class View
         ob_start();
     }
 
-
-
     private function endBlock(): void
     {
         if ($this->activeBlock === null) {
@@ -256,13 +269,5 @@ class View
         }
         $this->blocks[$this->activeBlock] = ob_get_clean();
         $this->activeBlock = null;
-    }
-
-    /**
-     * This method is called from the parent template to display a block.
-     */
-    protected function displayBlock(string $name): void
-    {
-        echo $this->blocks[$name] ?? '';
     }
 }

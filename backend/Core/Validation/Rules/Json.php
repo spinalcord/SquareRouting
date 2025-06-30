@@ -8,9 +8,10 @@ final readonly class Json implements RuleInterface
 {
     public function validate(string $field, mixed $value, array $data): bool
     {
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return false;
         }
+
         return json_validate($value);
     }
 

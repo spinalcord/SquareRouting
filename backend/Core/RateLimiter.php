@@ -2,8 +2,8 @@
 
 namespace SquareRouting\Core;
 
-
-class RateLimiter {
+class RateLimiter
+{
     private $dataFile;
     private $limits = [];
     private $data = [];
@@ -11,75 +11,40 @@ class RateLimiter {
     /**
      * Constructor
      *
-     * @param string $dataFile Path to the JSON file for data storage
+     * @param  string  $dataFile  Path to the JSON file for data storage
      */
-    public function __construct($dataFile =  'rate_limits.json') {
-        $this->dataFile =  $dataFile;
+    public function __construct($dataFile = 'rate_limits.json')
+    {
+        $this->dataFile = $dataFile;
 
         $this->loadData();
     }
 
     /**
-     * Loads the stored data from the JSON file
-     */
-    private function loadData(): void {
-        if (file_exists($this->dataFile)) {
-            $content = file_get_contents($this->dataFile);
-            $this->data = json_decode($content, true) ?: [];
-
-            // Clean up old entries
-            $this->cleanupExpiredEntries();
-        }
-    }
-
-    /**
-     * Saves the current data to the JSON file
-     */
-    private function saveData(): void {
-        file_put_contents($this->dataFile, json_encode($this->data));
-    }
-
-    /**
-     * Cleans up expired entries
-     */
-    private function cleanupExpiredEntries(): void {
-        $now = time();
-        foreach ($this->data as $key => $entries) {
-            foreach ($entries as $id => $entry) {
-                if ($entry['expires'] < $now) {
-                    unset($this->data[$key][$id]);
-                }
-            }
-
-            if (empty($this->data[$key])) {
-                unset($this->data[$key]);
-            }
-        }
-    }
-
-    /**
      * Defines a limit for a specific key
      *
-     * @param string $key The key to monitor (e.g., 'captcha', 'login', etc.)
-     * @param int $maxAttempts Maximum number of attempts
-     * @param int $timeWindow Time window in seconds
+     * @param  string  $key  The key to monitor (e.g., 'captcha', 'login', etc.)
+     * @param  int  $maxAttempts  Maximum number of attempts
+     * @param  int  $timeWindow  Time window in seconds
      */
-    public function setLimit($key, $maxAttempts, $timeWindow): void {
+    public function setLimit($key, $maxAttempts, $timeWindow): void
+    {
         $this->limits[$key] = [
             'maxAttempts' => $maxAttempts,
-            'timeWindow' => $timeWindow
+            'timeWindow' => $timeWindow,
         ];
     }
 
     /**
      * Checks if a client has exceeded the limit for a key
      *
-     * @param string $key The key to check
-     * @param string $clientId Unique client identifier (e.g., IP address, session ID)
+     * @param  string  $key  The key to check
+     * @param  string  $clientId  Unique client identifier (e.g., IP address, session ID)
      * @return bool True if the limit has been exceeded, otherwise False
      */
-    public function isLimitExceeded($key, $clientId): bool {
-        if (!isset($this->limits[$key])) {
+    public function isLimitExceeded($key, $clientId): bool
+    {
+        if (! isset($this->limits[$key])) {
             return false;
         }
 
@@ -87,15 +52,15 @@ class RateLimiter {
         $now = time();
 
         // Initialize the key if not already present
-        if (!isset($this->data[$key])) {
+        if (! isset($this->data[$key])) {
             $this->data[$key] = [];
         }
 
         // Initialize the client if not already present
-        if (!isset($this->data[$key][$clientId])) {
+        if (! isset($this->data[$key][$clientId])) {
             $this->data[$key][$clientId] = [
                 'attempts' => 0,
-                'expires' => $now + $limit['timeWindow']
+                'expires' => $now + $limit['timeWindow'],
             ];
         }
 
@@ -103,7 +68,7 @@ class RateLimiter {
         if ($this->data[$key][$clientId]['expires'] < $now) {
             $this->data[$key][$clientId] = [
                 'attempts' => 0,
-                'expires' => $now + $limit['timeWindow']
+                'expires' => $now + $limit['timeWindow'],
             ];
         }
 
@@ -114,12 +79,13 @@ class RateLimiter {
     /**
      * Registers an attempt for a key and client
      *
-     * @param string $key The key (e.g., 'captcha', 'login', etc.)
-     * @param string $clientId Unique client identifier (e.g., IP address, session ID)
+     * @param  string  $key  The key (e.g., 'captcha', 'login', etc.)
+     * @param  string  $clientId  Unique client identifier (e.g., IP address, session ID)
      * @return bool True if the limit has been exceeded, otherwise False
      */
-    public function registerAttempt($key, $clientId): bool {
-        if (!isset($this->limits[$key])) {
+    public function registerAttempt($key, $clientId): bool
+    {
+        if (! isset($this->limits[$key])) {
             return false;
         }
 
@@ -127,15 +93,15 @@ class RateLimiter {
         $now = time();
 
         // Initialize the key if not already present
-        if (!isset($this->data[$key])) {
+        if (! isset($this->data[$key])) {
             $this->data[$key] = [];
         }
 
         // Initialize the client if not already present
-        if (!isset($this->data[$key][$clientId])) {
+        if (! isset($this->data[$key][$clientId])) {
             $this->data[$key][$clientId] = [
                 'attempts' => 0,
-                'expires' => $now + $limit['timeWindow']
+                'expires' => $now + $limit['timeWindow'],
             ];
         }
 
@@ -143,7 +109,7 @@ class RateLimiter {
         if ($this->data[$key][$clientId]['expires'] < $now) {
             $this->data[$key][$clientId] = [
                 'attempts' => 1,
-                'expires' => $now + $limit['timeWindow']
+                'expires' => $now + $limit['timeWindow'],
             ];
         } else {
             // Increment the number of attempts
@@ -160,19 +126,20 @@ class RateLimiter {
     /**
      * Blocks a client for a specified time
      *
-     * @param string $key The key (e.g., 'captcha', 'login', etc.)
-     * @param string $clientId Unique client identifier (e.g., IP address, session ID)
-     * @param int $blockTime Block time in seconds
+     * @param  string  $key  The key (e.g., 'captcha', 'login', etc.)
+     * @param  string  $clientId  Unique client identifier (e.g., IP address, session ID)
+     * @param  int  $blockTime  Block time in seconds
      */
-    public function blockClient($key, $clientId, $blockTime): void {
-        if (!isset($this->data[$key])) {
+    public function blockClient($key, $clientId, $blockTime): void
+    {
+        if (! isset($this->data[$key])) {
             $this->data[$key] = [];
         }
 
         $now = time();
         $this->data[$key][$clientId] = [
             'attempts' => PHP_INT_MAX, // High value to ensure isLimitExceeded returns true
-            'expires' => $now + $blockTime
+            'expires' => $now + $blockTime,
         ];
 
         // Save the data
@@ -182,10 +149,11 @@ class RateLimiter {
     /**
      * Unblocks a client
      *
-     * @param string $key The key (e.g., 'captcha', 'login', etc.)
-     * @param string $clientId Unique client identifier (e.g., IP address, session ID)
+     * @param  string  $key  The key (e.g., 'captcha', 'login', etc.)
+     * @param  string  $clientId  Unique client identifier (e.g., IP address, session ID)
      */
-    public function unblockClient($key, $clientId): void {
+    public function unblockClient($key, $clientId): void
+    {
         if (isset($this->data[$key]) && isset($this->data[$key][$clientId])) {
             unset($this->data[$key][$clientId]);
 
@@ -201,12 +169,13 @@ class RateLimiter {
     /**
      * Returns the remaining time until the limit resets
      *
-     * @param string $key The key (e.g., 'captcha', 'login', etc.)
-     * @param string $clientId Unique client identifier (e.g., IP address, session ID)
+     * @param  string  $key  The key (e.g., 'captcha', 'login', etc.)
+     * @param  string  $clientId  Unique client identifier (e.g., IP address, session ID)
      * @return int Remaining time in seconds or 0 if no entry exists
      */
-    public function getRemainingTimeToReset($key, $clientId): mixed {
-        if (!isset($this->data[$key]) || !isset($this->data[$key][$clientId])) {
+    public function getRemainingTimeToReset($key, $clientId): mixed
+    {
+        if (! isset($this->data[$key]) || ! isset($this->data[$key][$clientId])) {
             return 0;
         }
 
@@ -219,16 +188,17 @@ class RateLimiter {
     /**
      * Returns the number of remaining attempts
      *
-     * @param string $key The key (e.g., 'captcha', 'login', etc.)
-     * @param string $clientId Unique client identifier (e.g., IP address, session ID)
+     * @param  string  $key  The key (e.g., 'captcha', 'login', etc.)
+     * @param  string  $clientId  Unique client identifier (e.g., IP address, session ID)
      * @return int Number of remaining attempts or 0 if the limit has already been exceeded
      */
-    public function getRemainingAttempts($key, $clientId): mixed {
-        if (!isset($this->limits[$key])) {
+    public function getRemainingAttempts($key, $clientId): mixed
+    {
+        if (! isset($this->limits[$key])) {
             return PHP_INT_MAX;
         }
 
-        if (!isset($this->data[$key]) || !isset($this->data[$key][$clientId])) {
+        if (! isset($this->data[$key]) || ! isset($this->data[$key][$clientId])) {
             return $this->limits[$key]['maxAttempts'];
         }
 
@@ -240,5 +210,46 @@ class RateLimiter {
         }
 
         return max(0, $this->limits[$key]['maxAttempts'] - $this->data[$key][$clientId]['attempts']);
+    }
+
+    /**
+     * Loads the stored data from the JSON file
+     */
+    private function loadData(): void
+    {
+        if (file_exists($this->dataFile)) {
+            $content = file_get_contents($this->dataFile);
+            $this->data = json_decode($content, true) ?: [];
+
+            // Clean up old entries
+            $this->cleanupExpiredEntries();
+        }
+    }
+
+    /**
+     * Saves the current data to the JSON file
+     */
+    private function saveData(): void
+    {
+        file_put_contents($this->dataFile, json_encode($this->data));
+    }
+
+    /**
+     * Cleans up expired entries
+     */
+    private function cleanupExpiredEntries(): void
+    {
+        $now = time();
+        foreach ($this->data as $key => $entries) {
+            foreach ($entries as $id => $entry) {
+                if ($entry['expires'] < $now) {
+                    unset($this->data[$key][$id]);
+                }
+            }
+
+            if (empty($this->data[$key])) {
+                unset($this->data[$key]);
+            }
+        }
     }
 }

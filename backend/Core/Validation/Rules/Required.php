@@ -17,6 +17,7 @@ final readonly class Required implements RuleInterface
         if (is_array($value) && empty($value)) {
             return false;
         }
+
         return true;
     }
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SquareRouting\Core;
@@ -7,9 +8,7 @@ class RouteCollector
 {
     private array $routeInstances = [];
 
-    function __construct(public DependencyContainer $container)
-    {
-    }
+    public function __construct(public DependencyContainer $container) {}
 
     // Add a Route instance
     public function add(Route $route): void
@@ -27,6 +26,7 @@ class RouteCollector
                 $merged->addRouteDefinition($routeDefinition);
             }
         }
+
         return $merged;
     }
 
@@ -34,6 +34,7 @@ class RouteCollector
     public function dispatch(): bool
     {
         $mergedRoute = $this->getMergedRoute();
+
         return $mergedRoute->dispatch();
     }
 }

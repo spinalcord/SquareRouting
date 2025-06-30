@@ -6,13 +6,13 @@ use SquareRouting\Core\Interfaces\RuleInterface;
 
 final readonly class Max implements RuleInterface
 {
-    public function __construct(private int $length)
-    {
-    }
+    public function __construct(private int $length) {}
 
     public function validate(string $field, mixed $value, array $data): bool
     {
-        if ($value === null) return true;
+        if ($value === null) {
+            return true;
+        }
 
         return match (true) {
             is_string($value) => mb_strlen($value) <= $this->length,

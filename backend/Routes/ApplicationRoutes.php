@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SquareRouting\Routes;
@@ -12,7 +13,7 @@ use SquareRouting\Filters\ExampleFilter;
 
 class ApplicationRoutes implements RoutableInterface
 {
-    public function getRoute(DependencyContainer $container) : Route
+    public function getRoute(DependencyContainer $container): Route
     {
         $route = new Route($container);
 
@@ -22,7 +23,7 @@ class ApplicationRoutes implements RoutableInterface
         // Reroute Example
         $route->reroute('/reroute-test', '/google');
         $route->get('/', ExampleController::class, 'home');
-        
+
         $route->get('/table-example', ExampleController::class, 'tableExample');
         $route->get('/register', ExampleController::class, 'registerExample');
         // Get Examples
@@ -36,11 +37,11 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/dotenv-example', ExampleController::class, 'envExample');
         $route->get('/database-example', ExampleController::class, 'databaseExamples');
         $route->get('/filtertest', ExampleController::class, 'filterTest')
-              ->filter([ExampleFilter::class]);
+            ->filter([ExampleFilter::class]);
 
         $route->get('/template-example', ExampleController::class, 'templateExample');
         $route->get('/account-example', AuthenticationController::class, 'accountExample');
-        
+
         $route->get('/language-example', ExampleController::class, 'languageExample');
 
         // Post Example

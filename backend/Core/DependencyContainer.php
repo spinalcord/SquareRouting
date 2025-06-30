@@ -2,6 +2,10 @@
 
 namespace SquareRouting\Core;
 
+use Exception;
+use ReflectionClass;
+use ReflectionNamedType;
+
 /**
  * A modern, lightweight Dependency Injection Container
  */
@@ -20,10 +24,9 @@ class DependencyContainer
     /**
      * Registers a service with a factory function
      *
-     * @param string $id Service identifier
-     * @param callable $factory Factory function that creates the service
-     * @param bool $singleton Whether the service should be treated as a singleton
-     * @return self
+     * @param  string  $id  Service identifier
+     * @param  callable  $factory  Factory function that creates the service
+     * @param  bool  $singleton  Whether the service should be treated as a singleton
      */
     public function set(string $id, callable $factory, bool $singleton = true): self
     {
@@ -38,11 +41,10 @@ class DependencyContainer
     /**
      * Registers a class with automatic Constructor Injection
      *
-     * @param string $id Service identifier (optional, if not provided, the class name is used)
-     * @param string $className Class name
-     * @param array $parameters Additional parameters for the constructor
-     * @param bool $singleton Whether the service should be treated as a singleton
-     * @return self
+     * @param  string  $id  Service identifier (optional, if not provided, the class name is used)
+     * @param  string  $className  Class name
+     * @param  array  $parameters  Additional parameters for the constructor
+     * @param  bool  $singleton  Whether the service should be treated as a singleton
      */
     public function register(?string $id = null, ?string $className = null, array $parameters = [], bool $singleton = true): self
     {
@@ -53,10 +55,10 @@ class DependencyContainer
         }
 
         return $this->set($id, function () use ($className, $parameters) {
-            $reflectionClass = new \ReflectionClass($className);
+            $reflectionClass = new ReflectionClass($className);
             $constructor = $reflectionClass->getConstructor();
 
-            if (!$constructor) {
+            if (! $constructor) {
                 return $reflectionClass->newInstance();
             }
 
@@ -67,19 +69,20 @@ class DependencyContainer
                 // If parameter was explicitly passed
                 if (isset($parameters[$paramName])) {
                     $dependencies[] = $parameters[$paramName];
+
                     continue;
                 }
 
                 // Read type hint for autowiring
                 $type = $param->getType();
-                if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+                if ($type instanceof ReflectionNamedType && ! $type->isBuiltin()) {
                     $dependencies[] = $this->get($type->getName());
                 } elseif ($param->isDefaultValueAvailable()) {
                     $dependencies[] = $param->getDefaultValue();
                 } elseif ($param->allowsNull()) {
                     $dependencies[] = null;
                 } else {
-                    throw new \Exception("Missing parameter $paramName. Make sure your register $className with $paramName.");
+                    throw new Exception("Missing parameter {$paramName}. Make sure your register {$className} with {$paramName}.");
                 }
             }
 
@@ -90,19 +93,20 @@ class DependencyContainer
     /**
      * Retrieves a service from the container
      *
-     * @param string $id Identifier des Services
+     * @param  string  $id  Identifier des Services
      * @return mixed
-     * @throws \Exception If the service is not found
+     *
+     * @throws Exception If the service is not found
      */
     public function get(string $id)
     {
         // If the service is not registered, try to register it automatically
-        if (!isset($this->definitions[$id])) {
+        if (! isset($this->definitions[$id])) {
             // Check if the ID is an existing class
             if (class_exists($id)) {
                 $this->register($id);
             } else {
-                throw new \Exception("Service '$id' not found");
+                throw new Exception("Service '{$id}' not found");
             }
         }
 
@@ -127,8 +131,7 @@ class DependencyContainer
     /**
      * Checks if a service is registered
      *
-     * @param string $id Identifier des Services
-     * @return bool
+     * @param  string  $id  Identifier des Services
      */
     public function has(string $id): bool
     {
@@ -138,8 +141,7 @@ class DependencyContainer
     /**
      * Removes a service from the container
      *
-     * @param string $id Identifier des Services
-     * @return self
+     * @param  string  $id  Identifier des Services
      */
     public function remove(string $id): self
     {

@@ -1,8 +1,8 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SquareRouting\Core\Validation;
-
 
 /**
  * A modern, extensible validation class for PHP 8.3+.
@@ -16,8 +16,8 @@ final class Validator
     private array $expandedRules;
 
     /**
-     * @param array<string, mixed> $data The data to be validated.
-     * @param array<string, list<Rule>> $rules The validation rules.
+     * @param  array<string, mixed>  $data  The data to be validated.
+     * @param  array<string, list<Rule>>  $rules  The validation rules.
      */
     public function __construct(
         private array $data,
@@ -27,7 +27,6 @@ final class Validator
         $this->validatedData = [];
         $this->expandedRules = $this->expandRules($this->rules, $this->data);
     }
-
 
     /**
      * Runs the validation process.
@@ -40,8 +39,9 @@ final class Validator
             $value = $this->getNestedValue($this->data, $field);
 
             foreach ($fieldRules as $rule) {
-                if (!$rule->validate($field, $value, $this->data)) {
+                if (! $rule->validate($field, $value, $this->data)) {
                     $this->addError($field, $rule->message($field));
+
                     // Stop validating this field on the first failure
                     continue 2;
                 }
@@ -63,7 +63,8 @@ final class Validator
         if (empty($this->errors) && empty($this->validatedData)) {
             $this->validate();
         }
-        return !empty($this->errors);
+
+        return ! empty($this->errors);
     }
 
     /**
@@ -92,7 +93,7 @@ final class Validator
         $originalField = $this->findOriginalRuleKey($field);
         $this->errors[$originalField][] = $message;
     }
-    
+
     /**
      * Expands rules with wildcards (*) into specific rules for each array element.
      * Example: 'items.*.name' becomes 'items.0.name', 'items.1.name', etc.
@@ -101,8 +102,9 @@ final class Validator
     {
         $expandedRules = [];
         foreach ($rules as $fieldPattern => $fieldRules) {
-            if (!str_contains($fieldPattern, '.*')) {
+            if (! str_contains($fieldPattern, '.*')) {
                 $expandedRules[$fieldPattern] = $fieldRules;
+
                 continue;
             }
 
@@ -110,10 +112,11 @@ final class Validator
             [$prefix, $suffix] = explode('.*.', $fieldPattern, 2);
             $arrayData = $this->getNestedValue($data, $prefix);
 
-            if (!is_array($arrayData)) {
+            if (! is_array($arrayData)) {
                 // If the data at the prefix is not an array, we can't expand.
                 // We'll add the original rule, which will likely fail on a type check.
                 $expandedRules[$fieldPattern] = $fieldRules;
+
                 continue;
             }
 
@@ -124,9 +127,10 @@ final class Validator
                 $expandedRules = array_merge($expandedRules, $newExpanded);
             }
         }
+
         return $expandedRules;
     }
-    
+
     /**
      * Retrieves a value from a nested array using dot notation.
      */
@@ -135,11 +139,12 @@ final class Validator
         $keys = explode('.', $key);
         $value = $data;
         foreach ($keys as $segment) {
-            if (!is_array($value) || !array_key_exists($segment, $value)) {
+            if (! is_array($value) || ! array_key_exists($segment, $value)) {
                 return null;
             }
             $value = $value[$segment];
         }
+
         return $value;
     }
 
@@ -151,7 +156,7 @@ final class Validator
         $keys = explode('.', $key);
         $temp = &$data;
         foreach ($keys as $segment) {
-            if (!isset($temp[$segment]) || !is_array($temp[$segment])) {
+            if (! isset($temp[$segment]) || ! is_array($temp[$segment])) {
                 $temp[$segment] = [];
             }
             $temp = &$temp[$segment];
@@ -171,6 +176,7 @@ final class Validator
                 return $ruleKey;
             }
         }
+
         return $generatedKey;
     }
 }

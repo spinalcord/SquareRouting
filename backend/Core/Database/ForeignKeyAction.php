@@ -1,7 +1,9 @@
 <?php
+
 namespace SquareRouting\Core\Database;
 
-enum ForeignKeyAction: string {
+enum ForeignKeyAction: string
+{
     case CASCADE = 'CASCADE';
     case SET_NULL = 'SET NULL';
     case RESTRICT = 'RESTRICT';

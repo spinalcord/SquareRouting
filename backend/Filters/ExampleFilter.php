@@ -8,11 +8,11 @@ class ExampleFilter
 {
     public function before(DependencyContainer $container): void
     {
-        echo "some text before...";
+        echo 'some text before...';
     }
 
     public function after(DependencyContainer $container): void
     {
-        echo "...some text after.";
+        echo '...some text after.';
     }
 }

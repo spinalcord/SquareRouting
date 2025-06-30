@@ -10,14 +10,16 @@ define('CODE_SNIPPET_LINES', 5);
 define('STACK_TRACE_SNIPPETS', 4); // Number of stack trace entries with snippets
 
 // Custom error handling function
-function customErrorHandler($errno, $errstr, $errfile, $errline) {
-    logError("Error", $errno, $errstr, $errfile, $errline);
+function customErrorHandler($errno, $errstr, $errfile, $errline)
+{
+    logError('Error', $errno, $errstr, $errfile, $errline);
 }
 
 // Error handling for uncaught exceptions
-function customExceptionHandler($exception) {
+function customExceptionHandler($exception)
+{
     logError(
-        "Uncaught Exception",
+        'Uncaught Exception',
         $exception->getCode(),
         $exception->getMessage(),
         $exception->getFile(),
@@ -27,17 +29,18 @@ function customExceptionHandler($exception) {
 }
 
 // Common function for logging and outputting errors
-function logError($type, $code, $message, $file, $line, $trace = null) {
+function logError($type, $code, $message, $file, $line, $trace = null)
+{
     // Format for HTML output (browser) - full error output
     $htmlOutput = "<pre>\n";
-    $htmlOutput .= "<strong>$type:</strong>\n";
-    $htmlOutput .= "Code:". $code."\n";
-    $htmlOutput .= "Message: $message\n";
-    $htmlOutput .= "File: $file\n";
-    $htmlOutput .= "Line: $line\n";
+    $htmlOutput .= "<strong>{$type}:</strong>\n";
+    $htmlOutput .= 'Code:' . $code . "\n";
+    $htmlOutput .= "Message: {$message}\n";
+    $htmlOutput .= "File: {$file}\n";
+    $htmlOutput .= "Line: {$line}\n";
 
     // Format for console (PhpStorm) - stack trace only
-    $consoleOutput = "\n$type: $message in $file on line $line\n";
+    $consoleOutput = "\n{$type}: {$message} in {$file} on line {$line}\n";
     $consoleOutput .= "Stack Trace:\n";
 
     // Show code snippet for the original error location (browser only)
@@ -58,6 +61,7 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
 
         // Output error in browser (full output)
         echo $htmlOutput . "</pre>\n";
+
         return;
     }
 
@@ -69,15 +73,15 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
         if (isset($traceEntry['file']) && isset($traceEntry['line'])) {
             // For browser: Detailed stack trace with code snippets
             $htmlOutput .= "\n<h3>Stack Level " . ($index + 1) . "</h3>:\n";
-            $htmlOutput .= "File: " . $traceEntry['file'] . "\n";
-            $htmlOutput .= "Line: " . $traceEntry['line'] . "\n";
-            $htmlOutput .= "Function: " . (isset($traceEntry['function']) ? $traceEntry['function'] : 'unknown') . "\n";
+            $htmlOutput .= 'File: ' . $traceEntry['file'] . "\n";
+            $htmlOutput .= 'Line: ' . $traceEntry['line'] . "\n";
+            $htmlOutput .= 'Function: ' . (isset($traceEntry['function']) ? $traceEntry['function'] : 'unknown') . "\n";
             $htmlOutput .= "Code Context:\n";
             $htmlOutput .= showCodeSnippet($traceEntry['file'], $traceEntry['line']);
 
             // For PhpStorm: Only the stack trace information
-            $consoleOutput .= "#$index {$traceEntry['file']}({$traceEntry['line']}): ";
-            $consoleOutput .= isset($traceEntry['class']) ? "{$traceEntry['class']}{$traceEntry['type']}" : "";
+            $consoleOutput .= "#{$index} {$traceEntry['file']}({$traceEntry['line']}): ";
+            $consoleOutput .= isset($traceEntry['class']) ? "{$traceEntry['class']}{$traceEntry['type']}" : '';
             $consoleOutput .= "{$traceEntry['function']}()\n";
         }
     }
@@ -85,8 +89,8 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
     $htmlOutput .= "\nComplete Stack Trace:\n";
     foreach ($trace as $index => $traceEntry) {
         if (isset($traceEntry['file']) && isset($traceEntry['line'])) {
-            $traceInfo = "#$index {$traceEntry['file']}({$traceEntry['line']}): ";
-            $traceInfo .= isset($traceEntry['class']) ? "{$traceEntry['class']}{$traceEntry['type']}" : "";
+            $traceInfo = "#{$index} {$traceEntry['file']}({$traceEntry['line']}): ";
+            $traceInfo .= isset($traceEntry['class']) ? "{$traceEntry['class']}{$traceEntry['type']}" : '';
             $traceInfo .= "{$traceEntry['function']}()\n";
 
             $htmlOutput .= $traceInfo;
@@ -102,29 +106,33 @@ function logError($type, $code, $message, $file, $line, $trace = null) {
     echo $htmlOutput;
 }
 // Function to display code snippets
-function showCodeSnippet($file, $line) {
-    if (!file_exists($file)) return "File not found.\n";
+function showCodeSnippet($file, $line)
+{
+    if (! file_exists($file)) {
+        return "File not found.\n";
+    }
 
     $lines = file($file);
     $start = max(0, $line - CODE_SNIPPET_LINES);
     $end = min(count($lines), $line + CODE_SNIPPET_LINES + 1);
 
-    $snippet = "";
+    $snippet = '';
     for ($i = $start; $i < $end; $i++) {
         $num = $i + 1;
-        $marker = ($num == $line) ? ">> " : "   ";
-        $snippet .= "$marker$num: " . $lines[$i];
+        $marker = ($num == $line) ? '>> ' : '   ';
+        $snippet .= "{$marker}{$num}: " . $lines[$i];
     }
+
     return $snippet;
 }
 
-set_error_handler("customErrorHandler");
-set_exception_handler("customExceptionHandler");
+set_error_handler('customErrorHandler');
+set_exception_handler('customExceptionHandler');
 
-register_shutdown_function(function() {
+register_shutdown_function(function () {
     $error = error_get_last();
     if ($error && ($error['type'] === E_ERROR || $error['type'] === E_PARSE ||
             $error['type'] === E_COMPILE_ERROR || $error['type'] === E_CORE_ERROR)) {
-        logError("Fatal Error", $error['type'], $error['message'], $error['file'], $error['line']);
+        logError('Fatal Error', $error['type'], $error['message'], $error['file'], $error['line']);
     }
 });

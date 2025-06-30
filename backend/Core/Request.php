@@ -1,13 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace SquareRouting\Core;
 
 class Request
 {
-    function __construct()
-    {
-    }
+    public function __construct() {}
 
     // Retrieves all GET parameters
     public function get(?string $key = null): mixed
@@ -15,6 +14,7 @@ class Request
         if ($key) {
             return $_GET[$key] ?? null; // Use null coalescing operator.
         }
+
         return $_GET;
     }
 
@@ -24,6 +24,7 @@ class Request
         if ($key) {
             return $_POST[$key] ?? null; // Use null coalescing operator.
         }
+
         return $_POST;
     }
 
@@ -37,6 +38,7 @@ class Request
     public function header(string $key): ?string
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+
         return $_SERVER[$key] ?? null; // Use null coalescing, and simplify the logic.
     }
 
@@ -84,6 +86,7 @@ class Request
             if ($key) {
                 return $data[$key] ?? null; // Null coalescing.
             }
+
             return $data;
         }
 
