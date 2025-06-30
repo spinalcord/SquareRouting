@@ -16,13 +16,18 @@ class Response
      * @param  mixed  $data  The data to encode.
      * @param  int  $status  The HTTP status code.
      */
-    public function json(mixed $data, int $status = 200): self
+    public function json(mixed $data, int $status = 200, bool $pretty = false): self
     {
         $this->status = $status;
         $this->setHeader('Content-Type', 'application/json');
-        $this->body = json_encode($data);
-
-        return $this; // Important: Return $this for method chaining.
+        
+        $flags = 0;
+        if ($pretty) {
+            $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
+        }
+        
+        $this->body = json_encode($data, $flags);
+        return $this;
     }
 
     /**

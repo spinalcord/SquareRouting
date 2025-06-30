@@ -23,6 +23,7 @@ SquareRouting (Approx 0.2 Mb without comments) is a powerful, fast, and flexible
         - [ORM-like Table Generation](#orm-like-table-generation)
         - [Template Engine (Views)](#template-engine-views)
         - [Language Support](#language-support)
+        - [Configuration System](#configuration-system)
     - [Response Handling](#response-handling)
         - [HTML Page Example](#html-page-example)
         - [Redirection Example](#redirection-example)
@@ -30,7 +31,7 @@ SquareRouting (Approx 0.2 Mb without comments) is a powerful, fast, and flexible
 - [License](#license)
 
 ## Features
-*   **Language Support**: Advanced langauge support via route segements (e.g. http://localhost:8000/en)
+*   **Language Support**: Multi-language support via route segments (e.g. http://localhost:8000/en)
 *   **Flexible Routing**: Define routes for GET, POST, PUT, DELETE, PATCH, and REROUTE (redirection) methods.
 *   **Path Parameters**: Supports dynamic URL segments with predefined patterns (e.g., `num`, `alpha`, `slug`) and a special `:path` parameter for capturing entire sub-paths, including slashes.
 *   **Route Filters**: Apply 'before' and 'after' filters to routes for tasks like authentication, logging, or data manipulation. Filters are classes with `before` and `after` methods that receive the `DependencyContainer`.
@@ -63,7 +64,7 @@ This project uses Composer for dependency management.
 
 #### Defining Routes
 
-Routes are defined in `app/Routes/ApplicationRoutes.php`. You can add GET, POST, and REROUTE rules.
+Create your routes in `app/Routes/ApplicationRoutes.php`. Here's how to add different types of routes:
 
 ```php
 // backend/Routes/ApplicationRoutes.php
@@ -79,29 +80,24 @@ class ApplicationRoutes implements RoutableInterface
     {
         $route = new Route($container);
 
-        // Add custom patterns
+        // Add custom URL patterns
         $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
-        // Reroute Example
+        // Redirect old URLs to new ones
         $route->reroute('/old-path', '/new-path');
 
-        // GET Routes
+        // Basic routes with parameters
         $route->get('/hello/:name', ExampleController::class, 'sayHello', ['name' => 'alpha']);
-        $route->get('/data/:id', ExampleController::class, 'getData', ['id' => 'num']);
-        $route->get('/filtered-route', ExampleController::class, 'filteredMethod')
-              ->filter([ExampleFilter::class]); // Apply a filter
+        $route->get('/user/:id', ExampleController::class, 'getUser', ['id' => 'num']);
+        
+        // Routes with filters (middleware)
+        $route->get('/admin', ExampleController::class, 'adminPanel')
+              ->filter([ExampleFilter::class]);
 
-        // POST Routes
-        $route->post('/submit-form', ExampleController::class, 'processForm');
-
-        // PUT Routes
-        $route->put('/update-item/:id', ExampleController::class, 'updateItem', ['id' => 'num']);
-
-        // DELETE Routes
-        $route->delete('/delete-item/:id', ExampleController::class, 'deleteItem', ['id' => 'num']);
-
-        // PATCH Routes
-        $route->patch('/patch-item/:id', ExampleController::class, 'patchItem', ['id' => 'num']);
+        // Different HTTP methods
+        $route->post('/users', ExampleController::class, 'createUser');
+        $route->put('/users/:id', ExampleController::class, 'updateUser', ['id' => 'num']);
+        $route->delete('/users/:id', ExampleController::class, 'deleteUser', ['id' => 'num']);
 
         return $route;
     }
@@ -110,10 +106,10 @@ class ApplicationRoutes implements RoutableInterface
 
 #### Route Collection
 
-The `RouteCollector` class is responsible for gathering and merging all defined `Route` instances into a single, comprehensive route collection. This allows for modular route definitions across different files or modules, which are then combined for dispatching. This can be useful if you implement a plugin system and allow your plugins to have their own routes.
+Use RouteCollector to combine routes from different sources. This is useful for modular applications or plugin systems:
 
 ```php
-// public/index.php (Example usage)
+// public/index.php
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\RouteCollector;
 use SquareRouting\Routes\ApplicationRoutes;
@@ -121,16 +117,16 @@ use SquareRouting\Routes\ApplicationRoutes;
 $container = new DependencyContainer();
 $collector = new RouteCollector($container);
 
-// Add your application routes
+// Add your main routes
 $collector->add((new ApplicationRoutes())->getRoute($container));
 
-// Dispatch the collected routes
+// Start handling requests
 $collector->dispatch();
 ```
 
 #### Controllers
 
-Controllers handle the logic for your routes. They receive the `DependencyContainer` in their constructor.
+Controllers handle your application logic. They get the DependencyContainer automatically:
 
 ```php
 // backend/Controllers/ExampleController.php
@@ -142,86 +138,74 @@ use SquareRouting\Core\Response;
 class ExampleController {
 
   public function __construct(DependencyContainer $container) {
+      // Container is injected automatically
   }
 
-  public function someTest(int $mynum): Response {
-    $data = [
-        'status' => 'success',
-        'received_number' => $mynum,
-        'message' => 'This is a proper JSON response!'
+  public function getUser(int $id): Response {
+    $userData = [
+        'id' => $id,
+        'name' => 'John Doe',
+        'email' => 'john@example.com'
     ];
-    return (new Response)->json($data, 200);
+    
+    return (new Response)->json($userData);
   }
 }
 ```
 
-#### Route Filters (Inspired by Lightpack PHP)
+#### Route Filters
 
-Filters allow you to execute code before and after a route is processed. They are defined as classes with `before` and `after` methods.
+Filters let you run code before and after your routes. Great for authentication or logging:
 
 ```php
-// backend/Filters/ExampleFilter.php
+// backend/Filters/AuthFilter.php
 namespace SquareRouting\Filters;
 
 use SquareRouting\Core\DependencyContainer;
 
-class ExampleFilter
+class AuthFilter
 {
     public function before(DependencyContainer $container): void
     {
-        echo "some text before...";
+        // Check if user is logged in
+        if (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+            exit;
+        }
     }
 
     public function after(DependencyContainer $container): void
     {
-        echo "...some text after.";
+        // Log the request or clean up
+        error_log("User accessed protected route");
     }
 }
 ```
 
-To apply a filter to a route, use the `filter()` method:
+Apply filters to your routes:
 
 ```php
-$route->get('/filtertest', ExampleController::class, 'filterTest')
-      ->filter([ExampleFilter::class]); // Apply the ExampleFilter to this route
-```
-
-After that, a filter will be executed before and after the specific get method.
-
-```php
-// backend/Controllers/ExampleController.php
-namespace SquareRouting\Controllers;
-
-use SquareRouting\Core\Response;
-
-class ExampleController {
-  // ...
-  public function filteredMethod(): Response {
-    return (new Response)->html("Content after filter.");
-  }
-  // ...
-}
+$route->get('/dashboard', ExampleController::class, 'dashboard')
+      ->filter([AuthFilter::class]);
 ```
 
 ### Built-in Features
 
 #### CORS Protection
 
-The `CorsMiddleware` class handles Cross-Origin Resource Sharing (CORS) in PHP applications, allowing you to control access to your resources. To use the middleware, open the `.env` file and add a comma-separated string of allowed origins (or leave it empty to allow all hosts route calls):
+Set allowed domains in your `.env` file:
 
 ```
 ALLOWED_ORIGINS="https://my-domain.com, https://another-example.com"
 ```
 
+Leave empty to allow all origins.
+
 #### Caching
 
-The `Cache` class provides a simple mechanism for caching data. You can retrieve, store, delete, and clear cached items.
+Cache expensive operations easily:
 
 ```php
-// backend/Controllers/ExampleController.php
-use SquareRouting\Core\Cache;
-use SquareRouting\Core\Response;
-
 class ExampleController {
     public Cache $cache;
 
@@ -229,543 +213,392 @@ class ExampleController {
         $this->cache = $container->get(Cache::class);
     }
 
-    public function cacheExample(): Response {
-        $data = $this->cache->get('my_prefix', 'my_key', function() {
-            // This callback runs if data is not in cache
-            return ['message' => 'Data fetched from source.'];
-        }, 60); // Cache for 60 seconds
+    public function expensiveOperation(): Response {
+        // Try to get from cache, or calculate if not found
+        $result = $this->cache->get('calculations', 'fibonacci_100', function() {
+            // This only runs if not in cache
+            return $this->calculateFibonacci(100);
+        }, 300); // Cache for 5 minutes
 
-        return (new Response)->json($data);
+        return (new Response)->json(['result' => $result]);
     }
 }
 ```
 
 #### Rate Limiting
 
-The `RateLimiter` class demonstrates how to use the built-in `RateLimiter` to protect your endpoints from excessive requests.
+Protect your API from abuse:
 
 ```php
-// backend/Controllers/ExampleController.php
-use SquareRouting\Core\RateLimiter;
-use SquareRouting\Core\Response;
-
-class ExampleController {
+class ApiController {
     public RateLimiter $rateLimiter;
 
     public function __construct(DependencyContainer $container) {
         $this->rateLimiter = $container->get(RateLimiter::class);
     }
 
-    public function rateLimiterExample(): Response {
-        $clientId = $_SERVER['REMOTE_ADDR'];
-        $key = 'api_access';
-        $this->rateLimiter->setLimit($key, 5, 60); // 5 attempts per 60 seconds
+    public function apiEndpoint(): Response {
+        $clientIp = $_SERVER['REMOTE_ADDR'];
+        
+        // Allow 10 requests per minute
+        $this->rateLimiter->setLimit('api_calls', 10, 60);
 
-        if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
-            return (new Response)->json(['message' => 'Rate limit exceeded.'], 429);
+        if ($this->rateLimiter->isLimitExceeded('api_calls', $clientIp)) {
+            return (new Response)->json(['error' => 'Too many requests'], 429);
         }
 
-        $this->rateLimiter->registerAttempt($key, $clientId);
-        return (new Response)->json(['message' => 'Access granted.']);
+        $this->rateLimiter->registerAttempt('api_calls', $clientIp);
+        
+        return (new Response)->json(['data' => 'Your API response']);
     }
 }
 ```
 
 #### Environment Variables (.env)
 
-The `DotEnv` class demonstrates how to access environment variables defined in the `.env` file.
+Access your environment variables:
 
 ```php
-// backend/Controllers/ExampleController.php
-use SquareRouting\Core\DotEnv;
-
 class ExampleController {
-    public DotEnv $dotEnv;
+    public DotEnv $env;
 
     public function __construct(DependencyContainer $container) {
-        $this->dotEnv = $container->get(DotEnv::class);
+        $this->env = $container->get(DotEnv::class);
     }
 
-    public function envExample(): Response {
-        $testValue = $this->dotEnv->get("TESTVALUE");
-        return (new Response)->html("The .env value is: ".$testValue);
+    public function showConfig(): Response {
+        $apiKey = $this->env->get("API_KEY");
+        $debug = $this->env->get("DEBUG_MODE", "false");
+        
+        return (new Response)->json([
+            'api_configured' => !empty($apiKey),
+            'debug_mode' => $debug === "true"
+        ]);
     }
 }
 ```
 
 #### Input Validation
 
-The `Validator` class showcases the use of input validation, including required fields, minimum/maximum lengths, `in` rule, nested validation, array validation, and JSON validation.
+Validate user input with simple rules:
 
 ```php
-// backend/Controllers/ExampleController.php
-namespace SquareRouting\Controllers;
-
-use SquareRouting\Core\Request;
-use SquareRouting\Core\Response;
 use SquareRouting\Core\Validation\Validator;
 use SquareRouting\Core\Validation\Rules\Required;
 use SquareRouting\Core\Validation\Rules\Email;
 use SquareRouting\Core\Validation\Rules\Min;
 
-class ExampleController {
+class UserController {
     public Request $request;
 
     public function __construct(DependencyContainer $container) {
         $this->request = $container->get(Request::class);
     }
 
-    public function validateExample(): Response {
+    public function register(): Response {
         $data = $this->request->post();
+        
         $rules = [
             'email' => [new Required(), new Email()],
             'password' => [new Required(), new Min(8)],
+            'name' => [new Required()],
         ];
 
         $validator = Validator::make($data, $rules);
 
         if ($validator->fails()) {
-            return (new Response)->json(['status' => 'error', 'errors' => $validator->errors()], 400);
-        } else {
-            return (new Response)->json(['status' => 'success', 'message' => 'Validation passed.']);
+            return (new Response)->json([
+                'errors' => $validator->errors()
+            ], 400);
         }
+
+        // Process registration...
+        return (new Response)->json(['success' => true]);
     }
 }
 ```
 
 #### Database Operations
 
-The `Database` class demonstrates core database operations, including creating tables, inserting, selecting, updating, deleting, and managing transactions.
+Simple database operations:
 
 ```php
-// backend/Controllers/ExampleController.php
-namespace SquareRouting\Controllers;
+class UserController {
+    private Database $db;
 
-use PDOException;
-use SquareRouting\Core\Database; // Make sure to import the Database class
-use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\Response;
-
-class ExampleController
-{
-    private Database $db; // Use the custom Database class
-
-    public function __construct(DependencyContainer $container)
-    {
-        $this->db = $container->get(Database::class); // Get the Database instance
+    public function __construct(DependencyContainer $container) {
+        $this->db = $container->get(Database::class);
     }
 
-    public function databaseExamples(): Response
-    {
-        $results = [];
+    public function createUser(): Response {
+        // Insert a new user
+        $userId = $this->db->insert('users', [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'password' => password_hash('secret', PASSWORD_DEFAULT)
+        ]);
 
-        try {
-            // 1. Create Table Example
-            $tableName = 'users';
-            $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username VARCHAR(50) NOT NULL UNIQUE,
-                email VARCHAR(100) NOT NULL UNIQUE,
-                password_hash VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )";
-            $this->db->query($sql);
-            $results['create_table'] = ['status' => 'success', 'message' => "Table '{$tableName}' ensured to exist."];
+        // Get the user back
+        $user = $this->db->select('users', ['id', 'name', 'email'], ['id' => $userId]);
 
-            // 2. Insert Example
-            $insertedId1 = $this->db->insert('users', [
-                'username' => 'test_user_' . uniqid(),
-                'email' => 'test_' . uniqid() . '@example.com',
-                'password_hash' => password_hash('password123', PASSWORD_DEFAULT)
-            ]);
-            $insertedId2 = $this->db->insert('users', [
-                'username' => 'another_user_' . uniqid(),
-                'email' => 'another_' . uniqid() . '@example.com',
-                'password_hash' => password_hash('securepass', PASSWORD_DEFAULT)
-            ]);
-            $results['insert'] = ['status' => 'success', 'message' => 'Users inserted.', 'ids' => [$insertedId1, $insertedId2]];
-
-            // 3. Select All Example
-            $allUsers = $this->db->select('users', ['id', 'username', 'email', 'created_at'], [], 'created_at DESC');
-            $results['select_all'] = ['status' => 'success', 'message' => 'All users retrieved.', 'count' => count($allUsers)];
-
-            // 4. Select with WHERE Example
-            $specificUser = $this->db->select('users', ['id', 'username', 'email'], ['username' => $allUsers[0]['username'] ?? 'nonexistent'], '', 1);
-            $results['select_where'] = ['status' => 'success', 'message' => 'Specific user retrieved.', 'data' => $specificUser];
-
-            // 5. Update Example
-            if (!empty($allUsers)) {
-                $updatedRows = $this->db->update('users', ['email' => 'updated_' . uniqid() . '@example.com'], ['id' => $allUsers[0]['id']]);
-                $results['update'] = ['status' => 'success', 'message' => "Updated {$updatedRows} row(s)."];
-            } else {
-                $results['update'] = ['status' => 'info', 'message' => 'Skipped update, no users to update.'];
-            }
-
-            // 6. Transaction Example
-            $transactionResult = $this->db->transaction(function (Database $db) {
-                $db->insert('users', [
-                    'username' => 'transaction_user_' . uniqid(),
-                    'email' => 'transaction_' . uniqid() . '@example.com',
-                    'password_hash' => password_hash('txpass', PASSWORD_DEFAULT)
-                ]);
-                // throw new \Exception("Simulating transaction rollback"); // Uncomment to test rollback
-                return "Transaction successful (or rolled back)";
-            });
-            $results['transaction'] = ['status' => 'success', 'message' => $transactionResult];
-
-            // 7. Delete Example (clean up some data)
-            $deletedRows = $this->db->delete('users', ['username' => 'transaction_user_' . uniqid()]); // This will likely delete nothing unless the transaction user was committed
-            $results['delete'] = ['status' => 'success', 'message' => "Deleted {$deletedRows} row(s)."];
-
-        } catch (PDOException $e) {
-            $results['overall_error'] = ['status' => 'error', 'message' => 'Database operation failed: ' . $e->getMessage()];
-        }
-
-        return (new Response)->json($results, 200);
+        return (new Response)->json(['user' => $user[0]]);
     }
-}
-```
 
-#### ORM-like Table Generation
+    public function updateUser(int $id): Response {
+        // Update user data
+        $updated = $this->db->update('users', 
+            ['name' => 'Jane Doe'], 
+            ['id' => $id]
+        );
 
-SquareRouting provides an ORM-like approach to define your database schema programmatically using the `Table`, `Column`, `ColumnType`, `ForeignKey`, and `ForeignKeyAction` classes. This allows you to define tables, columns, their types, constraints, and relationships in a clear, object-oriented manner, and then generate the corresponding SQL for different database dialects (e.g., MySQL, SQLite).
-
-**Key Features:**
-*   **Object-Oriented Schema Definition**: Define tables and columns as PHP objects.
-*   **Column Types**: Use `ColumnType` enum for standard SQL data types (e.g., `INT`, `VARCHAR`, `TEXT`, `BOOLEAN`, `DATETIME`, `DECIMAL`, `JSON`).
-*   **Column Properties**: Configure properties like `autoIncrement`, `length`, `nullable`, `default`.
-*   **Foreign Key Management**: Define relationships between tables with `ForeignKey` and specify `onDelete` and `onUpdate` actions (`CASCADE`, `SET_NULL`, `RESTRICT`).
-*   **SQL Generation**: Automatically generate `CREATE TABLE` SQL statements for different database dialects.
-
-**Usage Example:**
-
-```php
-// backend/Controllers/ExampleController.php (Simplified)
-namespace SquareRouting\Controllers;
-
-use SquareRouting\Core\Database\ColumnType;
-use SquareRouting\Core\Database\ForeignKey;
-use SquareRouting\Core\Database\ForeignKeyAction;
-use SquareRouting\Core\Database\Table;
-use SquareRouting\Core\Database\DatabaseDialect; // For specifying dialect
-use SquareRouting\Core\Response;
-
-class ExampleController {
-    // ... constructor and other methods ...
-
-    public function tableExample(): Response {
-        // Define 'categories' table
-        $categories = new Table('categories');
-        $categories->id = ColumnType::INT;
-        $categories->name = ColumnType::VARCHAR;
-        $categories->description = ColumnType::TEXT;
-
-        $categories->id->autoIncrement = true;
-        $categories->name->length = 100;
-        $categories->name->nullable = false;
-
-        // Define 'products' table
-        $products = new Table('products');
-        $products->id = ColumnType::INT;
-        $products->categoryId = ColumnType::INT; // Foreign key column
-        $products->name = ColumnType::VARCHAR;
-        $products->price = ColumnType::DECIMAL;
-
-        $products->id->autoIncrement = true;
-        $products->name->length = 255;
-        $products->name->nullable = false;
-        $products->price->nullable = false;
-        $products->price->default = 0.00;
-
-        // Define Foreign Key relationship
-        $products->categoryId->foreignKey = new ForeignKey($categories, $categories->id);
-        $products->categoryId->foreignKey->onDelete = ForeignKeyAction::CASCADE; // If category deleted, products also deleted
-        $products->categoryId->nullable = false;
-
-        // Generate SQL for MySQL (default)
-        echo "=== CATEGORIES (MySQL) ===\n";
-        echo $categories->toSQL();
-        echo "\n\n";
-
-        // Generate SQL for SQLite
-        echo "=== PRODUCTS (SQLite) ===\n";
-        echo $products->toSQL(DatabaseDialect::SQLITE);
-        echo "\n\n";
-
-        return (new Response)->html("Table generation example output in console.");
+        return (new Response)->json(['updated' => $updated > 0]);
     }
 }
 ```
 
 #### Account System
 
-The `AuthenticationController` includes an `accountExample` method that demonstrates the usage of the built-in account system, including user registration, login, checking login status, and logout. It also shows how rate limiting can be applied to account operations.
+Built-in user authentication:
 
 ```php
-// backend/Controllers/AuthenticationController.php
-namespace SquareRouting\Controllers;
+class AuthController {
+    public Account $account;
 
-use SquareRouting\Core\View;
-use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\Request;
-use SquareRouting\Core\Response;
-use SquareRouting\Core\RateLimiter;
-use SquareRouting\Core\Account;
+    public function __construct(DependencyContainer $container) {
+        $this->account = $container->get(Account::class);
+    }
 
-class AuthenticationController {
-  public Request $request;
-  public RateLimiter $rateLimiter;
-  public View $view;
-  public Account $account;
+    public function register(): Response {
+        $email = $_POST['email'];
+        $password = $_POST['password'];
 
-  public function __construct(DependencyContainer $container) {
-   $this->rateLimiter = $container->get(RateLimiter::class);
-   $this->request = $container->get(Request::class);
-   $this->view = $container->get(View::class);
-   $this->account = $container->get(Account::class);
-  }
+        try {
+            $success = $this->account->register($email, $password, [
+                'first_name' => $_POST['first_name']
+            ]);
 
-  public function accountExample(): Response {
-      $messages = [];
-      $isLoggedIn = false;
-      $currentUser = null;
+            if ($success) {
+                return (new Response)->json(['message' => 'Account created']);
+            }
+        } catch (Exception $e) {
+            return (new Response)->json(['error' => $e->getMessage()], 400);
+        }
+    }
 
-      $clientId = $this->request->getClientIp(); // Get client IP address
-      $key = 'account_operations'; // Define a key for account operations
+    public function login(): Response {
+        $email = $_POST['email'];
+        $password = $_POST['password'];
 
-      // Set rate limit: 5 attempts per 60 seconds for account operations
-      $this->rateLimiter->setLimit($key, 5, 60);
+        if ($this->account->login($email, $password)) {
+            $user = $this->account->getCurrentUser();
+            return (new Response)->json(['user' => $user]);
+        }
 
-      if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
-          $remainingTime = $this->rateLimiter->getRemainingTimeToReset($key, $clientId);
-          return (new Response)->json(['status' => 'error', 'message' => 'Rate limit exceeded for account operations. Try again in ' . $remainingTime . ' seconds.'], 429);
-      }
+        return (new Response)->json(['error' => 'Invalid credentials'], 401);
+    }
 
-      $this->rateLimiter->registerAttempt($key, $clientId);
-      $remainingAttempts = $this->rateLimiter->getRemainingAttempts($key, $clientId);
-      $messages[] = "Remaining account operation attempts: " . $remainingAttempts;
-
-      // 1. Attempt to register a new user
-      $testEmail = 'test_user_' . uniqid() . '@example.com';
-      $testPassword = 'Password123';
-      try {
-          $registered = $this->account->register($testEmail, $testPassword, ['first_name' => 'Test', 'last_name' => 'User']);
-          if ($registered) {
-              $messages[] = "User '{$testEmail}' registered successfully.";
-          } else {
-              $messages[] = "Failed to register user '{$testEmail}'.";
-          }
-      } catch (\InvalidArgumentException $e) {
-          $messages[] = "Registration failed: " . $e->getMessage();
-      } catch (\RuntimeException $e) {
-          $messages[] = "Registration runtime error: " . $e->getMessage();
-      }
-
-      // 2. Attempt to log in the newly registered user
-      try {
-          $loggedIn = $this->account->login($testEmail, $testPassword);
-          if ($loggedIn) {
-              $messages[] = "User '{$testEmail}' logged in successfully.";
-          } else {
-              $messages[] = "Failed to log in user '{$testEmail}'.";
-          }
-      } catch (\InvalidArgumentException $e) {
-          $messages[] = "Login failed: " . $e->getMessage();
-      } catch (\RuntimeException $e) {
-          $messages[] = "Login runtime error: " . $e->getMessage();
-      }
-
-      // 3. Check if user is logged in
-      $isLoggedIn = $this->account->isLoggedIn();
-      if ($isLoggedIn) {
-          $messages[] = "User is currently logged in.";
-          $currentUser = $this->account->getCurrentUser();
-          if ($currentUser) {
-              $messages[] = "Current user: " . ($currentUser['email'] ?? 'N/A');
-          }
-      } else {
-          $messages[] = "User is not logged in.";
-      }
-
-      // 4. Attempt to log out
-      if ($isLoggedIn) {
-          try {
-              $loggedOut = $this->account->logout();
-              if ($loggedOut) {
-                  $messages[] = "User logged out successfully.";
-              } else {
-                  $messages[] = "Failed to log out user.";
-              }
-          } catch (\Exception $e) {
-              $messages[] = "Logout failed: " . $e->getMessage();
-          }
-      }
-
-      // Re-check login status after logout
-      $isLoggedInAfterLogout = $this->account->isLoggedIn();
-      if (!$isLoggedInAfterLogout) {
-          $messages[] = "User is confirmed logged out.";
-      } else {
-          $messages[] = "User is still logged in after logout attempt (unexpected).";
-      }
-
-
-      $data = [
-          'pageTitle' => 'Account Example',
-          'messages' => $messages,
-          'isLoggedIn' => $isLoggedIn,
-          'currentUser' => $currentUser,
-      ];
-
-      $this->view->setMultiple($data);
-      $output = $this->view->render("account_example.tpl");
-      return (new Response)->html($output);
-  }
+    public function logout(): Response {
+        $this->account->logout();
+        return (new Response)->json(['message' => 'Logged out']);
+    }
 }
+```
+
+#### ORM-like Table Generation
+
+Define your database schema with PHP objects:
+
+```php
+use SquareRouting\Core\Database\ColumnType;
+use SquareRouting\Core\Database\ForeignKey;
+use SquareRouting\Core\Database\ForeignKeyAction;
+use SquareRouting\Core\Database\Table;
+
+// Create a users table
+$users = new Table('users');
+$users->id = ColumnType::INT;
+$users->email = ColumnType::VARCHAR;
+$users->name = ColumnType::VARCHAR;
+
+// Configure columns
+$users->id->autoIncrement = true;
+$users->email->length = 255;
+$users->email->nullable = false;
+$users->name->length = 100;
+
+// Create posts table with foreign key
+$posts = new Table('posts');
+$posts->id = ColumnType::INT;
+$posts->userId = ColumnType::INT;
+$posts->title = ColumnType::VARCHAR;
+$posts->content = ColumnType::TEXT;
+
+$posts->id->autoIncrement = true;
+$posts->title->length = 255;
+
+// Link posts to users
+$posts->userId->foreignKey = new ForeignKey($users, $users->id);
+$posts->userId->foreignKey->onDelete = ForeignKeyAction::CASCADE;
+
+// Generate SQL
+echo $users->toSQL(); // MySQL by default
+echo $posts->toSQL(DatabaseDialect::SQLITE); // Or SQLite
 ```
 
 #### Template Engine (Views)
 
-The `View` class provides a simple yet powerful PHP-based (Twig-like) template engine for rendering dynamic HTML views. It supports variable interpolation, loops (foreach), conditional statements (if/else), and inclusion of partial templates. The engine also includes a built-in caching mechanism to improve performance by storing compiled templates.
-
-**Key Features:**
-*   **Control Structures**: Use `{% control structure %}` for logic (e.g., `if`, `foreach`, `while`).
-*   **Escaped Output**: Display dynamic data with HTML escaping using `{{ $variableName }}`.
-*   **Raw Output**: Display dynamic data without HTML escaping using `{{ $variableName|raw }}`.
-*   **Template Comments**: Add comments that are ignored during compilation using `{# comment #}`.
-*   **Partial Includes**: Reuse template parts with `{% include "partial_template.tpl" %}`.
-*   **Template Inheritance**: Extend layouts and define blocks using `{% extends "layout.tpl" %}` and `{% block blockName %}`.
-*   **Caching**: Automatically caches compiled templates for faster rendering (Default: disabled).
-
-**Usage Example:**
-
-You can render a view by creating an instance of `View` (which can be injected via the `DependencyContainer`) and then using its `render` method. The output of the `render` method should then be returned as an HTML response.
+Render HTML templates with a Twig-like syntax:
 
 ```php
-// backend/Controllers/ExampleController.php
-use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\Response;
-use SquareRouting\Core\View;
-
-class ExampleController {
+class PageController {
     public View $view;
 
     public function __construct(DependencyContainer $container) {
         $this->view = $container->get(View::class);
     }
 
-    public function templateExample(): Response {
-        $data = [
-            'pageTitle' => 'My Page',
-            'userName' => 'Guest',
-            'items' => ['Item 1', 'Item 2', 'Item 3'],
-            'isLoggedIn' => true,
-        ];
+    public function homepage(): Response {
+        $this->view->setMultiple([
+            'pageTitle' => 'Welcome',
+            'userName' => 'John',
+            'items' => ['News', 'Products', 'About'],
+            'isLoggedIn' => true
+        ]);
 
-        $this->view->setMultiple($data);
-        $output = $this->view->render("demo.tpl"); // Renders backend/Templates/demo.tpl
-        return (new Response)->html($output);
+        $html = $this->view->render("homepage.tpl");
+        return (new Response)->html($html);
     }
 }
 ```
 
-**`backend/Templates/demo.tpl` content (simplified):**
+Template file (`backend/Templates/homepage.tpl`):
 
 ```html
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>{{ $pageTitle }}</title>
 </head>
 <body>
     <h1>Hello, {{ $userName }}!</h1>
+    
     {% if $isLoggedIn %}
         <p>Welcome back!</p>
     {% else %}
         <p>Please log in.</p>
     {% endif %}
+    
     <ul>
         {% foreach $items as $item %}
             <li>{{ $item }}</li>
         {% endforeach %}
     </ul>
-    {% include "partial_info.tpl" %}
 </body>
 </html>
 ```
 
 #### Language Support
-Define your languages in the language folder. Set the default langauge in the `.env` file.
 
-The first segment of your route path changes your language but routes work still like intended:
-
-```
-English: http://localhost:8000/en/language-example
-German: http://localhost:8000/de/language-example
-Default (Englisch): http://localhost:8000/language-example
-```
-
-You cann also use the session to change the default langauge, this is usefull if a user want's to use his own language. You just need to call a single segment route with your langauge
+Support multiple languages with automatic detection:
 
 ```
-German: http://localhost:8000/de -> Default langauge is now german for specefic visitor.
+English: http://localhost:8000/en/products
+German: http://localhost:8000/de/products
+Default: http://localhost:8000/products
 ```
 
-If you call http://localhost:8000/language-example again, the visitor sees the page with German translations. Routes are still intact, which means you can execute a function call alongside the language change, which is recommended to give user feedback.
+Set default language in `.env`:
+```
+DEFAULT_LANGUAGE=en
+```
+
+Switch user's default language:
+```php
+// Visit /de to set German as default for this user
+$route->get('/:lang', LanguageController::class, 'setLanguage', ['lang' => 'langcode']);
+```
+
+#### Configuration System
+
+Manage application settings easily:
 
 ```php
-$route->get('/:mycode', SomeController::class, 'languageChanged', ['mycode' => 'langcode'] );
+class SettingsController {
+    private Configuration $config;
+
+    public function __construct(DependencyContainer $container) {
+        $this->config = $container->get(Configuration::class);
+    }
+
+    public function setup(): Response {
+        // Register settings with defaults
+        $this->config->register("app.name", "My App", "App Name", "Application display name");
+        $this->config->register("app.debug", false, "Debug Mode", "Enable debug logging");
+        $this->config->register("mail.smtp.host", "localhost", "SMTP Host", "Email server hostname");
+
+        // Change values
+        $this->config->set("app.debug", true);
+        $this->config->set("mail.smtp.host", "smtp.gmail.com");
+
+        // Get values
+        $appName = $this->config->get("app.name");
+        $debugMode = $this->config->get("app.debug");
+
+        // Get entire sections
+        $mailConfig = $this->config->getArray("mail.smtp");
+
+        // Save to file
+        $this->config->save();
+
+        return (new Response)->json([
+            'app_name' => $appName,
+            'debug' => $debugMode,
+            'mail_config' => $mailConfig
+        ]);
+    }
+}
 ```
-
-
 
 ### Response Handling
 
 #### HTML Page Example
 
-The `showHtmlPage` method demonstrates how to return a simple HTML response.
+Return simple HTML pages:
 
 ```php
-// backend/Controllers/ExampleController.php
-class ExampleController {
-    // ...
-    public function showHtmlPage(): Response {
-        $html = "<h1>Hello World!</h1><p>This is an HTML page.</p>
-                 <form action=\"/post-example\" method=\"POST\">
-                     <button type=\"submit\">Send POST Request</button>
-                 </form>";
-        return (new Response)->html($html);
-    }
-    // ...
+public function homepage(): Response {
+    $html = "
+        <h1>Welcome!</h1>
+        <p>This is my homepage.</p>
+        <a href='/about'>About Us</a>
+    ";
+    return (new Response)->html($html);
 }
 ```
 
 #### Redirection Example
 
-The `redirectToGoogle` method shows how to perform a redirection to an external URL.
+Redirect users to other pages:
 
 ```php
-// backend/Controllers/ExampleController.php
-class ExampleController {
-    // ...
-    public function redirectToGoogle(): Response {
-        return (new Response)->redirect('https://www.google.com');
-    }
-    // ...
+public function oldPage(): Response {
+    return (new Response)->redirect('/new-page');
+}
+
+public function loginRedirect(): Response {
+    return (new Response)->redirect('https://accounts.google.com/login');
 }
 ```
 
 ## Running the Application
 
-You can use a PHP development server to run the application:
+Start the built-in PHP server:
 
 ```bash
 php -S localhost:8000 -t public
 ```
 
-Then, open your browser and navigate to `http://localhost:8000`.
+Then visit `http://localhost:8000` in your browser.
 
 ## License
 

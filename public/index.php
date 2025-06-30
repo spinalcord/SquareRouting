@@ -2,6 +2,7 @@
 
 use SquareRouting\Core\Account;
 use SquareRouting\Core\Cache;
+use SquareRouting\Core\Configuration;
 use SquareRouting\Core\CorsMiddleware;
 use SquareRouting\Core\Database;
 use SquareRouting\Core\DependencyContainer;
@@ -60,7 +61,8 @@ $container->register(Language::class, parameters: ['languageDirectory' => $langu
 $language = $container->get(Language::class);
 
 // Configuration
-
+$container->register(Configuration::class, parameters: ['database' => $db, 'autosave' => false]);
+$config = $container->get(Configuration::class);
 
 // //////////////////////////////////
 // Cors protection (add your domain to the array)
