@@ -20,9 +20,11 @@ class ApplicationRoutes implements RoutableInterface
         // Example how to add a new pattern
         $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
+        $route->get('/', ExampleController::class, 'home');
         // Reroute Example
         $route->reroute('/reroute-test', '/google');
-        $route->get('/', ExampleController::class, 'home');
+        // Config Example 
+        $route->get('/config-example', ExampleController::class, 'configExample');
 
         $route->get('/table-example', ExampleController::class, 'tableExample');
         $route->get('/register', ExampleController::class, 'registerExample');

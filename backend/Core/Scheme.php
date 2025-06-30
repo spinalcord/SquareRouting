@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SquareRouting\Core;
 
-use SquareRouting\Core\Database;
 use SquareRouting\Core\Database\ColumnType;
 use SquareRouting\Core\Database\ForeignKey;
 use SquareRouting\Core\Database\ForeignKeyAction;
@@ -78,4 +77,67 @@ class Scheme
         // $this->db->createTableIfNotExists($users);
         return $account;
     }
+
+
+
+  public function configCategories(): Table {
+    $configCategories = new Table('config_categories');
+    $configCategories->id = ColumnType::INT;
+    $configCategories->name = ColumnType::VARCHAR;
+    $configCategories->description = ColumnType::VARCHAR;
+    $configCategories->parentId = ColumnType::INT;
+    $configCategories->createdAt = ColumnType::DATETIME;
+
+    $configCategories->id->autoIncrement = true;
+    $configCategories->name->length = 255;
+    $configCategories->name->nullable = false;
+    $configCategories->name->unique = true;
+    $configCategories->description->length = 500;
+    $configCategories->description->nullable = false;
+    // Self-referencing Foreign Key for categories 
+    $configCategories->parentId->foreignKey = new ForeignKey($configCategories, $configCategories->id);
+    $configCategories->parentId->foreignKey->onDelete = ForeignKeyAction::CASCADE;
+    $configCategories->parentId->foreignKey->onUpdate = ForeignKeyAction::CASCADE;
+    $configCategories->parentId->nullable = true;
+    $configCategories->createdAt->nullable = false;
+    $configCategories->createdAt->default = 'CURRENT_TIMESTAMP';
+    return $configCategories;
+  }
+
+
+  public function configValues(): Table {
+    $configCategories = $this->configCategories();
+
+    // Configuration Values Table
+    $configValues = new Table('config_values');
+    $configValues->id = ColumnType::INT;
+    $configValues->categoryId = ColumnType::INT;
+    $configValues->key = ColumnType::VARCHAR; // key ist der einstellungsname
+    $configValues->type = ColumnType::VARCHAR;
+    $configValues->value = ColumnType::TEXT;
+    $configValues->defaultValue = ColumnType::TEXT;
+    $configValues->description = ColumnType::VARCHAR;
+    $configValues->updatedAt = ColumnType::DATETIME;
+    $configValues->createdAt = ColumnType::DATETIME;
+
+    $configValues->id->autoIncrement = true;
+    // Category Foreign Key
+    $configValues->categoryId->foreignKey = new ForeignKey($configCategories, $configCategories->id);
+    $configValues->categoryId->foreignKey->onDelete = ForeignKeyAction::CASCADE;
+    $configValues->categoryId->foreignKey->onUpdate = ForeignKeyAction::CASCADE;
+    $configValues->categoryId->nullable = false;
+    $configValues->key->length = 255;
+    $configValues->key->nullable = false;
+    $configValues->type->length = 20;
+    $configValues->type->nullable = false;
+    $configValues->value->nullable = true;
+    $configValues->defaultValue->nullable = true;
+    $configValues->description->length = 500;
+    $configValues->description->nullable = false;
+    $configValues->updatedAt->nullable = true;
+    $configValues->createdAt->nullable = false;
+    $configValues->createdAt->default = 'CURRENT_TIMESTAMP';
+
+    return $configValues;
+  }
 }

@@ -456,7 +456,7 @@ class Account
     private function createUserTable(): void
     {
         // Create users table using ORM-style pattern
-        $scheme = new Scheme();
+        $scheme = new Scheme;
         $accountScheme = $scheme->account();
         // Create the table
         $this->db->createTableIfNotExists($accountScheme);

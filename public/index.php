@@ -44,9 +44,10 @@ $container->register(RateLimiter::class, parameters: ['dataFile' => $rateLimitTe
 $rateLimiter = $container->get(RateLimiter::class);
 
 // Database connection
-$container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation]);
+$container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation, 'cache' => $cache]);
 $db = $container->get(Database::class);
-
+$db->enableCaching($dotEnv->get("DB_CACHING"));
+// View
 $container->register(View::class, parameters: ['templateDir' => $templateLocation, 'cacheDir' => $cacheLocation]);
 $view = $container->get(View::class);
 
@@ -57,6 +58,9 @@ $account = $container->get(Account::class);
 // Languages
 $container->register(Language::class, parameters: ['languageDirectory' => $languagesLocation, 'defaultLanguage' => empty($_SESSION['language']) ? $dotEnv->get('DEFAULT_LANGUAGE') : $_SESSION['language']]);
 $language = $container->get(Language::class);
+
+// Configuration
+
 
 // //////////////////////////////////
 // Cors protection (add your domain to the array)

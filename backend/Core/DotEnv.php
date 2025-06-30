@@ -53,6 +53,26 @@ final class DotEnv
             $this->load();
         }
 
+        $value = $this->data[$key] ?? $default;
+        
+        // Convert string values to appropriate types
+        return $this->convertType($value);
+    }
+
+    /**
+     * Retrieves an environment variable as raw string (no type conversion).
+     *
+     * @param  string  $key  The variable key.
+     * @param  mixed  $default  A default value to return if the key is not found.
+     * @return string|mixed The variable value or the default.
+     */
+    public function getRaw(string $key, mixed $default = null): mixed
+    {
+        // Lazily load the .env file on the first call.
+        if ($this->data === null) {
+            $this->load();
+        }
+
         return $this->data[$key] ?? $default;
     }
 
@@ -192,6 +212,55 @@ final class DotEnv
 
             $this->data[$key] = $value;
         }
+    }
+
+    /**
+     * Converts string values to appropriate PHP types.
+     */
+    private function convertType(mixed $value): mixed
+    {
+        // If it's not a string, return as-is
+        if (!is_string($value)) {
+            return $value;
+        }
+
+        // Convert common string representations to proper types
+        return match (strtolower($value)) {
+            'true', '(true)' => true,
+            'false', '(false)' => false,
+            'null', '(null)' => null,
+            'empty', '(empty)' => '',
+            default => $this->tryNumericConversion($value)
+        };
+    }
+
+    /**
+     * Attempts to convert numeric strings to integers or floats.
+     */
+    private function tryNumericConversion(string $value): string|int|float
+    {
+        // Check if it's a valid numeric string
+        if (!is_numeric($value)) {
+            return $value;
+        }
+
+        // Check if it's an integer
+        if (ctype_digit($value) || (str_starts_with($value, '-') && ctype_digit(substr($value, 1)))) {
+            $intValue = (int) $value;
+            // Make sure we didn't lose precision
+            if ((string) $intValue === $value) {
+                return $intValue;
+            }
+        }
+
+        // Try float conversion
+        $floatValue = (float) $value;
+        if (is_finite($floatValue)) {
+            return $floatValue;
+        }
+
+        // If all else fails, return as string
+        return $value;
     }
 
     /**

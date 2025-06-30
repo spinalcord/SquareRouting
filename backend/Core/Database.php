@@ -16,12 +16,20 @@ use Throwable;
 class Database
 {
     public DatabaseDialect $type = DatabaseDialect::MYSQL;
+
     private PDO $pdo;
     private bool $inTransaction = false;
     private array $queryLog = [];
     private bool $enableQueryLogging = false;
+    
+    // Cache Integration
+    private ?Cache $cache = null;
+    private bool $enableCaching = false;
+    private int $defaultCacheTtl = 300; // 5 minutes default
+    private bool $isDirty = false;
+    private string $cachePrefix = 'db';
 
-    public function __construct(DotEnv $dotEnv, string $sqlitePath = '')
+    public function __construct(DotEnv $dotEnv, string $sqlitePath = '', ?Cache $cache = null)
     {
         $dbType = $dotEnv->get('DB_CONNECTION', 'mysql');
 
@@ -41,6 +49,12 @@ class Database
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+            
+            // Cache setup
+            if ($cache !== null) {
+                $this->cache = $cache;
+                $this->enableCaching = true;
+            }
         } catch (PDOException $e) {
             throw new RuntimeException('Database connection failed: ' . $e->getMessage(), (int) $e->getCode(), $e);
         }
@@ -51,11 +65,97 @@ class Database
         return $this->pdo;
     }
 
+    // Cache Management
+    public function setCache(Cache $cache): self
+    {
+        $this->cache = $cache;
+        $this->enableCaching = true;
+        return $this;
+    }
+
+    public function enableCaching(bool $enable = true): self
+    {
+        $this->enableCaching = $enable && $this->cache !== null;
+        return $this;
+    }
+
+    public function setCachePrefix(string $prefix): self
+    {
+        $this->cachePrefix = $prefix;
+        return $this;
+    }
+
+    public function setCacheTtl(int $ttl): self
+    {
+        $this->defaultCacheTtl = $ttl;
+        return $this;
+    }
+
+    public function clearCache(): self
+    {
+        if ($this->enableCaching && $this->cache) {
+            $this->cache->clear($this->cachePrefix);
+        }
+        return $this;
+    }
+
+    public function markDirty(): self
+    {
+        $this->isDirty = true;
+        if ($this->enableCaching && $this->cache) {
+            $this->cache->clear($this->cachePrefix);
+        }
+        return $this;
+    }
+
+    public function isDirty(): bool
+    {
+        return $this->isDirty;
+    }
+
+    public function markClean(): self
+    {
+        $this->isDirty = false;
+        return $this;
+    }
+
+    private function getCacheKey(string $sql, array $params = []): string
+    {
+        return md5($sql . serialize($params));
+    }
+
+    private function getCachedResult(string $sql, array $params = [], int $ttl = 0): mixed
+    {
+        if (!$this->enableCaching || !$this->cache || $this->isDirty) {
+            return null;
+        }
+
+        $cacheKey = $this->getCacheKey($sql, $params);
+        $ttl = $ttl ?: $this->defaultCacheTtl;
+
+        try {
+            return $this->cache->get($this->cachePrefix, $cacheKey, function() {
+                return null; // Return null if not in cache
+            }, $ttl);
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    private function setCachedResult(string $sql, array $params, $result): void
+    {
+        if (!$this->enableCaching || !$this->cache || $this->isDirty) {
+            return;
+        }
+
+        $cacheKey = $this->getCacheKey($sql, $params);
+        $this->cache->put($this->cachePrefix, $cacheKey, $result);
+    }
+
     // Query Logging
     public function enableQueryLogging(bool $enable = true): self
     {
         $this->enableQueryLogging = $enable;
-
         return $this;
     }
 
@@ -67,7 +167,6 @@ class Database
     public function clearQueryLog(): self
     {
         $this->queryLog = [];
-
         return $this;
     }
 
@@ -115,7 +214,6 @@ class Database
         try {
             $result = $callback($this);
             $this->commit();
-
             return $result;
         } catch (Throwable $e) {
             $this->rollback();
@@ -161,31 +259,94 @@ class Database
     public function execute(string $sql, array $params = []): bool
     {
         $stmt = $this->query($sql, $params);
-
+        $this->markDirty(); // Mark as dirty for write operations
         return $stmt->rowCount() > 0;
     }
 
-    // Fetch Methods
-    public function fetch(string $sql, array $params = []): array|false
+    // Fetch Methods (with Cache)
+    public function fetch(string $sql, array $params = [], int $cacheTtl = 0): array|false
     {
-        return $this->query($sql, $params)->fetch();
+        // Try cache first
+        $cached = $this->getCachedResult($sql, $params, $cacheTtl);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $result = $this->query($sql, $params)->fetch();
+        
+        // Cache the result if it's a successful read
+        if ($result !== false) {
+            $this->setCachedResult($sql, $params, $result);
+        }
+
+        return $result;
     }
 
-    public function fetchAll(string $sql, array $params = []): array
+    public function fetchAll(string $sql, array $params = [], int $cacheTtl = 0): array
     {
-        return $this->query($sql, $params)->fetchAll();
+        // Try cache first
+        $cached = $this->getCachedResult($sql, $params, $cacheTtl);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $result = $this->query($sql, $params)->fetchAll();
+        
+        // Cache the result
+        $this->setCachedResult($sql, $params, $result);
+
+        return $result;
     }
 
-    public function fetchColumn(string $sql, array $params = [], int $column = 0): mixed
+    public function fetchColumn(string $sql, array $params = [], int $column = 0, int $cacheTtl = 0): mixed
     {
-        return $this->query($sql, $params)->fetchColumn($column);
+        // Try cache first
+        $cacheKey = $this->getCacheKey($sql . "_col_{$column}", $params);
+        if ($this->enableCaching && $this->cache && !$this->isDirty) {
+            $ttl = $cacheTtl ?: $this->defaultCacheTtl;
+            $cached = $this->cache->get($this->cachePrefix, $cacheKey, function() {
+                return null;
+            }, $ttl);
+            
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
+        $result = $this->query($sql, $params)->fetchColumn($column);
+        
+        // Cache the result
+        if ($this->enableCaching && $this->cache && !$this->isDirty) {
+            $this->cache->put($this->cachePrefix, $cacheKey, $result);
+        }
+
+        return $result;
     }
 
-    public function fetchObject(string $sql, array $params = [], ?string $className = null): object|false
+    public function fetchObject(string $sql, array $params = [], ?string $className = null, int $cacheTtl = 0): object|false
     {
+        // Try cache first
+        $cacheKey = $this->getCacheKey($sql . "_obj_" . ($className ?? 'stdClass'), $params);
+        if ($this->enableCaching && $this->cache && !$this->isDirty) {
+            $ttl = $cacheTtl ?: $this->defaultCacheTtl;
+            $cached = $this->cache->get($this->cachePrefix, $cacheKey, function() {
+                return null;
+            }, $ttl);
+            
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+
         $stmt = $this->query($sql, $params);
+        $result = $className ? $stmt->fetchObject($className) : $stmt->fetchObject();
+        
+        // Cache the result if successful
+        if ($result !== false && $this->enableCaching && $this->cache && !$this->isDirty) {
+            $this->cache->put($this->cachePrefix, $cacheKey, $result);
+        }
 
-        return $className ? $stmt->fetchObject($className) : $stmt->fetchObject();
+        return $result;
     }
 
     // CRUD Operations
@@ -201,6 +362,7 @@ class Database
         $sql = "INSERT INTO {$table} (" . implode(', ', $columns) . ') VALUES (' . implode(', ', $placeholders) . ')';
 
         $this->query($sql, $data);
+        $this->markDirty(); // Mark cache as dirty
 
         return $this->pdo->lastInsertId();
     }
@@ -227,8 +389,10 @@ class Database
         }
 
         $params = array_merge($data, $whereParams);
+        $result = $this->query($sql, $params)->rowCount();
+        $this->markDirty(); // Mark cache as dirty
 
-        return $this->query($sql, $params)->rowCount();
+        return $result;
     }
 
     public function delete(string $table, array $where): int
@@ -240,10 +404,13 @@ class Database
         $whereParts = array_map(fn ($col) => "{$col} = :{$col}", array_keys($where));
         $sql = "DELETE FROM {$table} WHERE " . implode(' AND ', $whereParts);
 
-        return $this->query($sql, $where)->rowCount();
+        $result = $this->query($sql, $where)->rowCount();
+        $this->markDirty(); // Mark cache as dirty
+
+        return $result;
     }
 
-    public function select(string $table, array $columns = ['*'], array $where = [], string $orderBy = '', int $limit = 0): array
+    public function select(string $table, array $columns = ['*'], array $where = [], string $orderBy = '', int $limit = 0, int $cacheTtl = 0): array
     {
         $columnList = implode(', ', $columns);
         $sql = "SELECT {$columnList} FROM {$table}";
@@ -263,10 +430,10 @@ class Database
             $sql .= " LIMIT {$limit}";
         }
 
-        return $this->fetchAll($sql, $params);
+        return $this->fetchAll($sql, $params, $cacheTtl);
     }
 
-    public function exists(string $table, array $where): bool
+    public function exists(string $table, array $where, int $cacheTtl = 0): bool
     {
         if (empty($where)) {
             throw new InvalidArgumentException('WHERE conditions cannot be empty');
@@ -275,10 +442,10 @@ class Database
         $whereParts = array_map(fn ($col) => "{$col} = :{$col}", array_keys($where));
         $sql = "SELECT 1 FROM {$table} WHERE " . implode(' AND ', $whereParts) . ' LIMIT 1';
 
-        return $this->fetch($sql, $where) !== false;
+        return $this->fetch($sql, $where, $cacheTtl) !== false;
     }
 
-    public function count(string $table, array $where = []): int
+    public function count(string $table, array $where = [], int $cacheTtl = 0): int
     {
         $sql = "SELECT COUNT(*) FROM {$table}";
         $params = [];
@@ -289,7 +456,7 @@ class Database
             $params = $where;
         }
 
-        return (int) $this->fetchColumn($sql, $params);
+        return (int) $this->fetchColumn($sql, $params, 0, $cacheTtl);
     }
 
     // Utility Methods
@@ -350,7 +517,6 @@ class Database
         try {
             // Attempt a simple query to check the connection status
             $this->pdo->query('SELECT 1');
-
             return true;
         } catch (PDOException $e) {
             // Connection is not active or query failed
@@ -360,11 +526,6 @@ class Database
 
     /**
      * Creates a table in the database based on a Table object.
-     *
-     * @param  Table  $table  The Table object representing the table to create.
-     * @return bool True if the table was created successfully, false otherwise.
-     *
-     * @throws RuntimeException If the table already exists or creation fails.
      */
     public function createTable(Table $table): bool
     {
@@ -384,7 +545,7 @@ class Database
 
         try {
             $this->query($sql);
-
+            $this->markDirty(); // Mark cache as dirty
             return true;
         } catch (PDOException $e) {
             throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int) $e->getCode(), $e);
@@ -393,11 +554,6 @@ class Database
 
     /**
      * Creates a table in the database based on a Table object if it doesn't already exist.
-     *
-     * @param  Table  $table  The Table object representing the table to create.
-     * @return bool True if the table was created, false if it already existed.
-     *
-     * @throws RuntimeException If table creation fails.
      */
     public function createTableIfNotExists(Table $table): bool
     {
@@ -418,7 +574,7 @@ class Database
 
         try {
             $this->query($sql);
-
+            $this->markDirty(); // Mark cache as dirty
             return true; // Table was created successfully
         } catch (PDOException $e) {
             throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int) $e->getCode(), $e);

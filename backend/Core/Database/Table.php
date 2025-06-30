@@ -35,7 +35,7 @@ class Table
             ? "`{$this->tableName}`"
             : "\"{$this->tableName}\"";
 
-        $sql = "CREATE TABLE {$tableName} (\n";
+        $sql = "CREATE TABLE IF NOT EXISTS {$tableName} (\n";
 
         $columnSQLs = [];
         $foreignKeys = [];
