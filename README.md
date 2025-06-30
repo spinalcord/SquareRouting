@@ -547,7 +547,7 @@ class SettingsController {
         // Get entire sections
         $mailConfig = $this->config->getArray("mail.smtp");
 
-        // Save to file
+        // saves automatically the config in the db 
         $this->config->save();
 
         return (new Response)->json([
