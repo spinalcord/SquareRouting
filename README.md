@@ -532,6 +532,7 @@ class SettingsController {
 
     public function setup(): Response {
         // Register settings with defaults
+        // be carefull if you change something later in this method, it won't work because the default are then written in the database, therefore use set() or reset().  
         $this->config->register("app.name", "My App", "App Name", "Application display name");
         $this->config->register("app.debug", false, "Debug Mode", "Enable debug logging");
         $this->config->register("mail.smtp.host", "localhost", "SMTP Host", "Email server hostname");
