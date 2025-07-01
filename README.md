@@ -541,6 +541,7 @@ class SettingsController {
         $this->config->set("mail.smtp.host", "smtp.gmail.com");
 
         // Get values
+        // As long as you use "get" the values will be cached to reduce database queries.
         $appName = $this->config->get("app.name");
         $debugMode = $this->config->get("app.debug");
 
