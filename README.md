@@ -537,6 +537,7 @@ class SettingsController {
         $this->config->register("mail.smtp.host", "localhost", "SMTP Host", "Email server hostname");
 
         // Change values
+        // sets the config value also to "dirty", allows recaching
         $this->config->set("app.debug", true);
         $this->config->set("mail.smtp.host", "smtp.gmail.com");
 
