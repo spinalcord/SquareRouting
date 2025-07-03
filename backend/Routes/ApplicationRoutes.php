@@ -15,12 +15,12 @@ use SquareRouting\Controllers\HomeExampleController;
 use SquareRouting\Controllers\HtmlPageExampleController;
 use SquareRouting\Controllers\HttpRequestExampleController;
 use SquareRouting\Controllers\LanguageExampleController;
+use SquareRouting\Controllers\MarkdownExampleController;
 use SquareRouting\Controllers\RateLimiterExampleController;
 use SquareRouting\Controllers\TableExampleController;
 use SquareRouting\Controllers\TemplateExampleController;
 use SquareRouting\Controllers\TestExampleController;
 use SquareRouting\Controllers\ValidatorExampleController;
-use SquareRouting\Controllers\MarkdownExampleController;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Interfaces\RoutableInterface;
 use SquareRouting\Core\Route;
@@ -38,7 +38,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/', HomeExampleController::class, 'home');
         // Reroute Example
         $route->reroute('/reroute-test', '/google');
-        // Config Example 
+        // Config Example
         $route->get('/config-example', ConfigExampleController::class, 'configExample');
 
         $route->get('/table-example', TableExampleController::class, 'tableExample');

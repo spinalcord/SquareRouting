@@ -3,8 +3,8 @@
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\Cache;
-use SquareRouting\Core\Response;
 use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\Response;
 
 class CacheExampleController
 {

@@ -2,10 +2,10 @@
 
 namespace SquareRouting\Controllers;
 
+use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response;
-use SquareRouting\Core\DependencyContainer;
 
 class RateLimiterExampleController
 {

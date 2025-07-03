@@ -21,7 +21,7 @@ class Database
     private bool $inTransaction = false;
     private array $queryLog = [];
     private bool $enableQueryLogging = false;
-    
+
     // Cache Integration
     private ?Cache $cache = null;
     private bool $enableCaching = false;
@@ -49,7 +49,7 @@ class Database
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             $this->pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
             $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
-            
+
             // Cache setup
             if ($cache !== null) {
                 $this->cache = $cache;
@@ -70,24 +70,28 @@ class Database
     {
         $this->cache = $cache;
         $this->enableCaching = true;
+
         return $this;
     }
 
     public function enableCaching(bool $enable = true): self
     {
         $this->enableCaching = $enable && $this->cache !== null;
+
         return $this;
     }
 
     public function setCachePrefix(string $prefix): self
     {
         $this->cachePrefix = $prefix;
+
         return $this;
     }
 
     public function setCacheTtl(int $ttl): self
     {
         $this->defaultCacheTtl = $ttl;
+
         return $this;
     }
 
@@ -96,6 +100,7 @@ class Database
         if ($this->enableCaching && $this->cache) {
             $this->cache->clear($this->cachePrefix);
         }
+
         return $this;
     }
 
@@ -105,6 +110,7 @@ class Database
         if ($this->enableCaching && $this->cache) {
             $this->cache->clear($this->cachePrefix);
         }
+
         return $this;
     }
 
@@ -116,46 +122,15 @@ class Database
     public function markClean(): self
     {
         $this->isDirty = false;
+
         return $this;
-    }
-
-    private function getCacheKey(string $sql, array $params = []): string
-    {
-        return md5($sql . serialize($params));
-    }
-
-    private function getCachedResult(string $sql, array $params = [], int $ttl = 0): mixed
-    {
-        if (!$this->enableCaching || !$this->cache || $this->isDirty) {
-            return null;
-        }
-
-        $cacheKey = $this->getCacheKey($sql, $params);
-        $ttl = $ttl ?: $this->defaultCacheTtl;
-
-        try {
-            return $this->cache->get($this->cachePrefix, $cacheKey, function() {
-                return null; // Return null if not in cache
-            }, $ttl);
-        } catch (Exception $e) {
-            return null;
-        }
-    }
-
-    private function setCachedResult(string $sql, array $params, $result): void
-    {
-        if (!$this->enableCaching || !$this->cache || $this->isDirty) {
-            return;
-        }
-
-        $cacheKey = $this->getCacheKey($sql, $params);
-        $this->cache->put($this->cachePrefix, $cacheKey, $result);
     }
 
     // Query Logging
     public function enableQueryLogging(bool $enable = true): self
     {
         $this->enableQueryLogging = $enable;
+
         return $this;
     }
 
@@ -167,6 +142,7 @@ class Database
     public function clearQueryLog(): self
     {
         $this->queryLog = [];
+
         return $this;
     }
 
@@ -214,6 +190,7 @@ class Database
         try {
             $result = $callback($this);
             $this->commit();
+
             return $result;
         } catch (Throwable $e) {
             $this->rollback();
@@ -260,6 +237,7 @@ class Database
     {
         $stmt = $this->query($sql, $params);
         $this->markDirty(); // Mark as dirty for write operations
+
         return $stmt->rowCount() > 0;
     }
 
@@ -273,7 +251,7 @@ class Database
         }
 
         $result = $this->query($sql, $params)->fetch();
-        
+
         // Cache the result if it's a successful read
         if ($result !== false) {
             $this->setCachedResult($sql, $params, $result);
@@ -291,7 +269,7 @@ class Database
         }
 
         $result = $this->query($sql, $params)->fetchAll();
-        
+
         // Cache the result
         $this->setCachedResult($sql, $params, $result);
 
@@ -302,21 +280,21 @@ class Database
     {
         // Try cache first
         $cacheKey = $this->getCacheKey($sql . "_col_{$column}", $params);
-        if ($this->enableCaching && $this->cache && !$this->isDirty) {
+        if ($this->enableCaching && $this->cache && ! $this->isDirty) {
             $ttl = $cacheTtl ?: $this->defaultCacheTtl;
-            $cached = $this->cache->get($this->cachePrefix, $cacheKey, function() {
+            $cached = $this->cache->get($this->cachePrefix, $cacheKey, function () {
                 return null;
             }, $ttl);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
         }
 
         $result = $this->query($sql, $params)->fetchColumn($column);
-        
+
         // Cache the result
-        if ($this->enableCaching && $this->cache && !$this->isDirty) {
+        if ($this->enableCaching && $this->cache && ! $this->isDirty) {
             $this->cache->put($this->cachePrefix, $cacheKey, $result);
         }
 
@@ -326,13 +304,13 @@ class Database
     public function fetchObject(string $sql, array $params = [], ?string $className = null, int $cacheTtl = 0): object|false
     {
         // Try cache first
-        $cacheKey = $this->getCacheKey($sql . "_obj_" . ($className ?? 'stdClass'), $params);
-        if ($this->enableCaching && $this->cache && !$this->isDirty) {
+        $cacheKey = $this->getCacheKey($sql . '_obj_' . ($className ?? 'stdClass'), $params);
+        if ($this->enableCaching && $this->cache && ! $this->isDirty) {
             $ttl = $cacheTtl ?: $this->defaultCacheTtl;
-            $cached = $this->cache->get($this->cachePrefix, $cacheKey, function() {
+            $cached = $this->cache->get($this->cachePrefix, $cacheKey, function () {
                 return null;
             }, $ttl);
-            
+
             if ($cached !== null) {
                 return $cached;
             }
@@ -340,9 +318,9 @@ class Database
 
         $stmt = $this->query($sql, $params);
         $result = $className ? $stmt->fetchObject($className) : $stmt->fetchObject();
-        
+
         // Cache the result if successful
-        if ($result !== false && $this->enableCaching && $this->cache && !$this->isDirty) {
+        if ($result !== false && $this->enableCaching && $this->cache && ! $this->isDirty) {
             $this->cache->put($this->cachePrefix, $cacheKey, $result);
         }
 
@@ -517,6 +495,7 @@ class Database
         try {
             // Attempt a simple query to check the connection status
             $this->pdo->query('SELECT 1');
+
             return true;
         } catch (PDOException $e) {
             // Connection is not active or query failed
@@ -546,6 +525,7 @@ class Database
         try {
             $this->query($sql);
             $this->markDirty(); // Mark cache as dirty
+
             return true;
         } catch (PDOException $e) {
             throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int) $e->getCode(), $e);
@@ -575,10 +555,44 @@ class Database
         try {
             $this->query($sql);
             $this->markDirty(); // Mark cache as dirty
+
             return true; // Table was created successfully
         } catch (PDOException $e) {
             throw new RuntimeException("Failed to create table '{$tableName}': " . $e->getMessage(), (int) $e->getCode(), $e);
         }
+    }
+
+    private function getCacheKey(string $sql, array $params = []): string
+    {
+        return md5($sql . serialize($params));
+    }
+
+    private function getCachedResult(string $sql, array $params = [], int $ttl = 0): mixed
+    {
+        if (! $this->enableCaching || ! $this->cache || $this->isDirty) {
+            return null;
+        }
+
+        $cacheKey = $this->getCacheKey($sql, $params);
+        $ttl = $ttl ?: $this->defaultCacheTtl;
+
+        try {
+            return $this->cache->get($this->cachePrefix, $cacheKey, function () {
+                return null; // Return null if not in cache
+            }, $ttl);
+        } catch (Exception $e) {
+            return null;
+        }
+    }
+
+    private function setCachedResult(string $sql, array $params, $result): void
+    {
+        if (! $this->enableCaching || ! $this->cache || $this->isDirty) {
+            return;
+        }
+
+        $cacheKey = $this->getCacheKey($sql, $params);
+        $this->cache->put($this->cachePrefix, $cacheKey, $result);
     }
 
     private function buildDsn(string $dbType, DotEnv $dotEnv, string $sqlitePath): string

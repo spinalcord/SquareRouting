@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace SquareRouting\Core;
 
 use SquareRouting\Core\Database\ColumnType;
-use SquareRouting\Core\Database\ForeignKey;
-use SquareRouting\Core\Database\ForeignKeyAction;
 use SquareRouting\Core\Database\Table;
 
 class Scheme
@@ -76,56 +74,55 @@ class Scheme
         // Create the table
         // $this->db->createTableIfNotExists($users);
         return $account;
-   }
+    }
 
+    public function configuration(): Table
+    {
+        $configuration = new Table('configurations');
 
-public function configuration(): Table
-{
-    $configuration = new Table('configurations');
-    
-    // Define columns
-    $configuration->id = ColumnType::INT;
-    $configuration->name = ColumnType::VARCHAR;
-    $configuration->value = ColumnType::TEXT;
-    $configuration->defaultValue = ColumnType::TEXT;
-    $configuration->label = ColumnType::VARCHAR;
-    $configuration->description = ColumnType::TEXT;
-    $configuration->type = ColumnType::VARCHAR;
-    $configuration->createdAt = ColumnType::DATETIME;
-    $configuration->updatedAt = ColumnType::DATETIME;
-    
-    // Configure id column
-    $configuration->id->autoIncrement = true;
-    
-    // Configure key column
-    $configuration->name->length = 255;
-    $configuration->name->nullable = false;
-    $configuration->name->unique = true;
-    
-    // Configure value column (nullable for complex data types)
-    $configuration->value->nullable = true;
-    
-    // Configure default_value column
-    $configuration->defaultValue->nullable = true;
-    
-    // Configure label column
-    $configuration->label->length = 255;
-    $configuration->label->nullable = true;
-    
-    // Configure description column
-    $configuration->description->nullable = true;
-    
-    // Configure type column (data type info)
-    $configuration->type->length = 50;
-    $configuration->type->nullable = false;
-    $configuration->type->default = 'string';
-    
-    // Configure timestamps
-    $configuration->createdAt->nullable = false;
-    $configuration->createdAt->default = 'CURRENT_TIMESTAMP';
-    
-    $configuration->updatedAt->nullable = true;
-    
-    return $configuration;
-}
+        // Define columns
+        $configuration->id = ColumnType::INT;
+        $configuration->name = ColumnType::VARCHAR;
+        $configuration->value = ColumnType::TEXT;
+        $configuration->defaultValue = ColumnType::TEXT;
+        $configuration->label = ColumnType::VARCHAR;
+        $configuration->description = ColumnType::TEXT;
+        $configuration->type = ColumnType::VARCHAR;
+        $configuration->createdAt = ColumnType::DATETIME;
+        $configuration->updatedAt = ColumnType::DATETIME;
+
+        // Configure id column
+        $configuration->id->autoIncrement = true;
+
+        // Configure key column
+        $configuration->name->length = 255;
+        $configuration->name->nullable = false;
+        $configuration->name->unique = true;
+
+        // Configure value column (nullable for complex data types)
+        $configuration->value->nullable = true;
+
+        // Configure default_value column
+        $configuration->defaultValue->nullable = true;
+
+        // Configure label column
+        $configuration->label->length = 255;
+        $configuration->label->nullable = true;
+
+        // Configure description column
+        $configuration->description->nullable = true;
+
+        // Configure type column (data type info)
+        $configuration->type->length = 50;
+        $configuration->type->nullable = false;
+        $configuration->type->default = 'string';
+
+        // Configure timestamps
+        $configuration->createdAt->nullable = false;
+        $configuration->createdAt->default = 'CURRENT_TIMESTAMP';
+
+        $configuration->updatedAt->nullable = true;
+
+        return $configuration;
+    }
 }

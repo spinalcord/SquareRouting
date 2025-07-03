@@ -2,10 +2,9 @@
 
 namespace SquareRouting\Controllers;
 
+use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response;
-use SquareRouting\Core\View;
-use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Validation\Rules\Email;
 use SquareRouting\Core\Validation\Rules\In;
 use SquareRouting\Core\Validation\Rules\IsArray;
@@ -13,6 +12,7 @@ use SquareRouting\Core\Validation\Rules\Json;
 use SquareRouting\Core\Validation\Rules\Min;
 use SquareRouting\Core\Validation\Rules\Required;
 use SquareRouting\Core\Validation\Validator;
+use SquareRouting\Core\View;
 
 class ValidatorExampleController
 {

@@ -4,6 +4,7 @@ use SquareRouting\Core\Account;
 use SquareRouting\Core\Cache;
 use SquareRouting\Core\Configuration;
 use SquareRouting\Core\CorsMiddleware;
+use SquareRouting\Core\MarkdownRenderer;
 use SquareRouting\Core\Database;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\DotEnv;
@@ -47,7 +48,7 @@ $rateLimiter = $container->get(RateLimiter::class);
 // Database connection
 $container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $sqliteFileLocation, 'cache' => $cache]);
 $db = $container->get(Database::class);
-$db->enableCaching($dotEnv->get("DB_CACHING"));
+$db->enableCaching($dotEnv->get('DB_CACHING'));
 // View
 $container->register(View::class, parameters: ['templateDir' => $templateLocation, 'cacheDir' => $cacheLocation]);
 $view = $container->get(View::class);
@@ -63,6 +64,12 @@ $language = $container->get(Language::class);
 // Configuration
 $container->register(Configuration::class, parameters: ['database' => $db, 'autosave' => false]);
 $config = $container->get(Configuration::class);
+
+// Configuration
+// You can also create a MarkdownRenderer instance everywhere, but we wan't use the same
+// cache system instance everywhere for best performance.
+$container->register(MarkdownRenderer::class, parameters: ['cache' => $cache]);
+$config = $container->get(MarkdownRenderer::class);
 
 // //////////////////////////////////
 // Cors protection (add your domain to the array)

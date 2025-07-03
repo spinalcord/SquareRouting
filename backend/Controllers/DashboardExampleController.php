@@ -3,7 +3,6 @@
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\Response;
-use SquareRouting\Core\DependencyContainer;
 
 class DashboardExampleController
 {

@@ -2,9 +2,9 @@
 
 namespace SquareRouting\Controllers;
 
-use SquareRouting\Core\Response;
-use SquareRouting\Core\Request;
 use SquareRouting\Core\DependencyContainer;
+use SquareRouting\Core\Request;
+use SquareRouting\Core\Response;
 
 class HtmlPageExampleController
 {

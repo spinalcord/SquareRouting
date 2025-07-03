@@ -20,13 +20,14 @@ class Response
     {
         $this->status = $status;
         $this->setHeader('Content-Type', 'application/json');
-        
+
         $flags = 0;
         if ($pretty) {
             $flags = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES;
         }
-        
+
         $this->body = json_encode($data, $flags);
+
         return $this;
     }
 

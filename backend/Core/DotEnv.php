@@ -54,7 +54,7 @@ final class DotEnv
         }
 
         $value = $this->data[$key] ?? $default;
-        
+
         // Convert string values to appropriate types
         return $this->convertType($value);
     }
@@ -220,7 +220,7 @@ final class DotEnv
     private function convertType(mixed $value): mixed
     {
         // If it's not a string, return as-is
-        if (!is_string($value)) {
+        if (! is_string($value)) {
             return $value;
         }
 
@@ -240,7 +240,7 @@ final class DotEnv
     private function tryNumericConversion(string $value): string|int|float
     {
         // Check if it's a valid numeric string
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return $value;
         }
 
