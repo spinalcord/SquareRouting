@@ -322,7 +322,7 @@ class UserController {
 
 #### Database Operations
 
-Simple database operations:
+Simple database operations. Ensures compatiblity with sqlite and mysql.
 
 ```php
 class UserController {
