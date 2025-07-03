@@ -20,6 +20,7 @@ use SquareRouting\Controllers\TableExampleController;
 use SquareRouting\Controllers\TemplateExampleController;
 use SquareRouting\Controllers\TestExampleController;
 use SquareRouting\Controllers\ValidatorExampleController;
+use SquareRouting\Controllers\MarkdownExampleController;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Interfaces\RoutableInterface;
 use SquareRouting\Core\Route;
@@ -54,6 +55,7 @@ class ApplicationRoutes implements RoutableInterface
             ->filter([ExampleFilter::class]);
 
         $route->get('/template-example', TemplateExampleController::class, 'templateExample');
+        $route->get('/markdown-example', MarkdownExampleController::class, 'showMarkdownExample');
         $route->get('/account-example', AuthenticationController::class, 'accountExample');
 
         $route->get('/language-example', LanguageExampleController::class, 'languageExample');

@@ -1,7 +1,7 @@
 ![](logo.jpg)
 # SquareRouting
 
-SquareRouting (Approx 0.2 Mb without comments) is a powerful, fast, and flexible PHP MVC micro-framework designed to provide a robust foundation for building web applications. It emphasizes clean URL structures, efficient routing, and includes essential features like rate limiting, caching, and a built-in account system.
+SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexible PHP MVC micro-framework designed to provide a robust foundation for building web applications. It emphasizes clean URL structures, efficient routing, and includes essential features like rate limiting, caching, and a built-in account system.
 
 ## Table of Contents
 - [Features](#features)
