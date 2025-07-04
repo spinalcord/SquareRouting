@@ -638,7 +638,9 @@ class MarkdownExampleController
 
     public function showMarkdownExample(): Response
     {
-        $markdownContent = "# Simple Markdown Example
+        $markdownContent = "# Simple Markdown Example";
+        $htmlContent = $this->mdr->render($markdownContent);
+        return (new Response)->html($htmlContent);
     }
 }
 ```
