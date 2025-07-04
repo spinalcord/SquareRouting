@@ -408,7 +408,7 @@ class AuthController {
 
 #### ORM-like Table Generation
 
-Define your database schema with PHP objects:
+Define your database schema with PHP objects, ensures compatiblity between Sqlite and Mysql:
 
 ```php
 use SquareRouting\Core\Database\ColumnType;
@@ -443,8 +443,8 @@ $posts->userId->foreignKey = new ForeignKey($users, $users->id);
 $posts->userId->foreignKey->onDelete = ForeignKeyAction::CASCADE;
 
 // Generate SQL
-echo $users->toSQL(); // MySQL by default
-echo $posts->toSQL(DatabaseDialect::SQLITE); // Or SQLite
+echo $users->toSQL(); // Dynamically generates Sqlite or Mysql (depends on your .env) 
+echo $posts->toSQL(DatabaseDialect::SQLITE); // Or explicit 
 ```
 
 #### Template Engine (Views)

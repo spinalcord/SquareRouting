@@ -29,7 +29,7 @@ $envFileLocation = __DIR__ . '/../backend/Configs/.env';
 $cacheLocation = __DIR__ . '/../backend/Cache';
 $templateLocation = __DIR__ . '/../backend/Templates/';
 $sqliteFileLocation = __DIR__ . '/../backend/Database/';
-$rateLimitTempFileLocation = $cacheLocation . '/rate_limit.json';
+$rateLimitTempFileLocation = $cacheLocation . '/rate_limit.cache';
 $languagesLocation = __DIR__ . '/../backend/Languages/';
 $container = new DependencyContainer;
 
