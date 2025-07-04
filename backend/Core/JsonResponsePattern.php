@@ -4,12 +4,12 @@ namespace SquareRouting\Core;
 
 class JsonResponsePattern
 {
-    public function success(mixed $data = null, string $message = ''): array
+    public function success(mixed $body = null, string $message = ''): array
     {
         $response = ['success' => true];
         
-        if ($data !== null) {
-            $response['data'] = $data;
+        if ($body !== null) {
+            $response['body'] = $body;
         }
         
         if (!empty($message)) {
