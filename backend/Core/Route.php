@@ -23,7 +23,7 @@ class Route
         'bool' => '(?:true|false|1|0|yes|no)',
         'hexcolor' => '#?(?:[0-9a-fA-F]{3}){1,2}',
         'langcode' => '[a-z]{2}(?:-[A-Z]{2})?',
-        'path' => '.*', // New pattern for path parameters that can include slashes
+        'path' => '[a-zA-Z0-9\-\._~/]+', // New pattern for path parameters that can include slashes, more secure
     ];
     private Request $request;
     private DependencyContainer $container;

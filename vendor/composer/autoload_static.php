@@ -16,7 +16,7 @@ class ComposerStaticInit0678a8a94097f2fa5381d68c3fb19840
     public static $prefixDirsPsr4 = array (
         'SquareRouting\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/',
+            0 => __DIR__ . '/../..' . '/backend',
         ),
     );
 

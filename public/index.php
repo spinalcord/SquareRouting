@@ -15,7 +15,7 @@ use SquareRouting\Core\RouteCollector;
 use SquareRouting\Core\View;
 use SquareRouting\Routes\ApplicationRoutes;
 
-require_once __DIR__ . '/../backend/vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/errorHandler.php';
 
 if (session_status() == PHP_SESSION_NONE) {
