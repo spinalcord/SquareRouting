@@ -11,7 +11,7 @@ SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexibl
         - [Defining Routes](#defining-routes)
         - [Route Collection](#route-collection)
         - [Controllers](#controllers)
-        - [Route Filters](#route-filters)
+        - [Route Filters (This idea is from Lightpack)](#route-filters)
     - [Built-in Features](#built-in-features)
         - [CORS Protection](#cors-protection)
         - [Caching](#caching)
@@ -55,9 +55,9 @@ This project uses Composer for dependency management.
     git clone https://github.com/a7dev/SquareRouting.git
     cd SquareRouting
     ```
-2.  **Install Composer dependencies**:
+2.  **Or with Composer**:
     ```bash
-    composer install
+    composer create-project spinalcord/square-routing
     ```
 
 ## Usage
@@ -360,7 +360,7 @@ class UserController {
 
 #### Account System
 
-Built-in user authentication:
+Built-in user authentication (Needs a database connection, use sqlite in the `.env` if you don't have mysql ready):
 
 ```php
 class AuthController {
@@ -501,7 +501,7 @@ Template file (`backend/Templates/homepage.tpl`):
 
 #### Language Support
 
-Support multiple languages with automatic detection:
+- Support multiple languages with automatic detection (doesn't affect the defined routepath!):
 
 ```
 English: http://localhost:8000/en/products
@@ -509,20 +509,41 @@ German: http://localhost:8000/de/products
 Default: http://localhost:8000/products
 ```
 
-Set default language in `.env`:
+- Set default language in `.env`:
 ```
 DEFAULT_LANGUAGE=en
 ```
 
-Switch user's default language:
+- Or let the user decide what his language is:
 ```php
 // Visit /de to set German as default for this user
 $route->get('/:lang', LanguageController::class, 'setLanguage', ['lang' => 'langcode']);
 ```
 
+then do `$this->language->setLanguage($lang, true);` in your controller. Done.
+
+- Load the language string from a json like this:
+    - As you cann see my language system supports nested definitions.
+    - Also parameters are supported.
+
+```json
+{
+    "user": {
+        "profile": "My name %s, My age %d."
+    }
+}
+```
+
+and load it like this in php:
+```php
+$this->language->translate('user.profile', 'foobar', 8)
+```
+
+
+
 #### Configuration System
 
-Manage application settings easily:
+Manage super fast cached application settings in your database easily (Use sqlite in the `.env` if you don't have mysql ready):
 
 ```php
 class SettingsController {
@@ -618,29 +639,12 @@ class MarkdownExampleController
     public function showMarkdownExample(): Response
     {
         $markdownContent = "# Simple Markdown Example
-
-This is a **bold** text and *italic* text.
-
-- List item 1
-- List item 2
-
-```php
-echo \"Hello, SquareRouting!\";
-```
-
-> A simple blockquote.
-
----
-
-Markdown rendering is automatically cached for speed!";
-
-        $html = $this->mdr->render($markdownContent);
-        return (new Response)->html($html);
     }
 }
 ```
 
-## Running the Application
+
+## Run the Server
 
 Start the built-in PHP server:
 
