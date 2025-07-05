@@ -10,23 +10,23 @@ namespace SquareRouting\Core\Scheme;
  */
 class ColumnName
 {
-    const CREATED_AT = 'created_at';
-    const DEFAULT_VALUE = 'default_value';
-    const DESCRIPTION = 'description';
-    const EMAIL = 'email';
-    const EMAIL_VERIFICATION_TOKEN = 'email_verification_token';
-    const EMAIL_VERIFIED = 'email_verified';
     const ID = 'id';
-    const LABEL = 'label';
-    const LAST_LOGIN = 'last_login';
-    const NAME = 'name';
+    const EMAIL = 'email';
     const PASSWORD = 'password';
-    const REMEMBER_TOKEN = 'remember_token';
+    const USERNAME = 'username';
+    const STATUS = 'status';
+    const EMAIL_VERIFIED = 'email_verified';
+    const EMAIL_VERIFICATION_TOKEN = 'email_verification_token';
     const RESET_TOKEN = 'reset_token';
     const RESET_TOKEN_EXPIRES = 'reset_token_expires';
-    const STATUS = 'status';
-    const TYPE = 'type';
+    const REMEMBER_TOKEN = 'remember_token';
+    const LAST_LOGIN = 'last_login';
+    const CREATED_AT = 'created_at';
     const UPDATED_AT = 'updated_at';
-    const USERNAME = 'username';
+    const NAME = 'name';
     const VALUE = 'value';
+    const DEFAULT_VALUE = 'default_value';
+    const LABEL = 'label';
+    const DESCRIPTION = 'description';
+    const TYPE = 'type';
 }

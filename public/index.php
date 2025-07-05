@@ -21,7 +21,6 @@ require __DIR__ . '/errorHandler.php';
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
-
 // //////////////////////////////////
 // SETUP DependencyContainer
 // //////////////////////////////////

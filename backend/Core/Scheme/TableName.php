@@ -10,6 +10,6 @@ namespace SquareRouting\Core\Scheme;
  */
 class TableName
 {
+    const ACCOUNT = 'account';
     const CONFIGURATION = 'configuration';
-    const USER = 'user';
 }

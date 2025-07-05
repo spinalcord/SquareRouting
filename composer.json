@@ -6,7 +6,10 @@
     "autoload": {
         "psr-4": {
             "SquareRouting\\": "./backend/"
-        }
+        },
+        "files": [
+            "backend/Core/functions.php"
+        ]
     },
     "authors": [
         {

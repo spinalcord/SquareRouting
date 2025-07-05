@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace SquareRouting\Core;
 
 use SquareRouting\Core\Database\ColumnType;
+use SquareRouting\Core\Database\TableSchema;
 use SquareRouting\Core\Database\Table;
 use SquareRouting\Core\Database\ForeignKey;
 use SquareRouting\Core\Database\ForeignKeyAction;
+use ReflectionClass;
+use ReflectionMethod;
 
 class Scheme
 {
+    #[TableSchema]
     public function account(): Table
     {
-        $account = new Table('user');
-
+        $account = null;
+        $account = new Table(nameof($account));
         // Define columns
         $account->id = ColumnType::INT;
         $account->email = ColumnType::VARCHAR;
@@ -78,9 +82,11 @@ class Scheme
         return $account;
     }
 
+    #[TableSchema]
     public function configuration(): Table
     {
-        $configuration = new Table('configuration');
+        $configuration = null;
+        $configuration = new Table(nameof($configuration));
 
         // Define columns
         $configuration->id = ColumnType::INT;
@@ -127,5 +133,4 @@ class Scheme
 
         return $configuration;
     }
-   
 }
