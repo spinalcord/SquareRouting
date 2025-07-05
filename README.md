@@ -28,6 +28,8 @@ SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexibl
     - [Response Handling](#response-handling)
         - [HTML Page Example](#html-page-example)
         - [Redirection Example](#redirection-example)
+    - [CLI Commands](#cli-commands)
+        - [Creating New Commands](#creating-new-commands)
 - [Running the Application](#running-the-application)
 - [License](#license)
 
@@ -443,9 +445,11 @@ $posts->userId->foreignKey = new ForeignKey($users, $users->id);
 $posts->userId->foreignKey->onDelete = ForeignKeyAction::CASCADE;
 
 // Generate SQL
-echo $users->toSQL(); // Dynamically generates Sqlite or Mysql (depends on your .env) 
-echo $posts->toSQL(DatabaseDialect::SQLITE); // Or explicit 
+echo $users->toSQL(); // Dynamically generates Sqlite or Mysql (depends on your .env)
+echo $posts->toSQL(DatabaseDialect::SQLITE); // Or explicit
 ```
+
+**Tip**: You can use the CLI command `php cli.php generate:schema` to automatically generate `ColumnName.php` and `TableName.php` constants based on your defined tables, which helps in maintaining consistency and reducing typos.
 
 #### Template Engine (Views)
 
@@ -645,6 +649,68 @@ class MarkdownExampleController
 }
 ```
 
+
+## CLI Commands
+
+SquareRouting includes a command-line interface (`cli.php`) to perform various tasks, such as generating database schemas.
+
+To run a CLI command, navigate to the `backend` directory and execute `php cli.php [command-name]`.
+
+```bash
+cd backend
+php cli.php
+```
+
+### Creating New Commands
+
+You can easily extend the CLI by creating your own custom commands.
+
+1.  **Create a new command file**:
+    After creating the file, your command will automatically be discovered by `cli.php` through reflection. No additional configuration or registration is needed.
+
+    Create a new PHP file in `backend/Core/CLI/Commands/` (e.g., `backend/Core/CLI/Commands/MyNewCommand.php`) with following template. Make sure your command ends with `*Command.php`.
+
+
+    ```php
+    // backend/Core/CLI/Commands/MyNewCommand.php
+    <?php
+
+    declare(strict_types=1);
+
+    namespace SquareRouting\Core\CLI\Commands;
+
+    use SquareRouting\Core\CLI\AbstractCommand;
+    use SquareRouting\Core\CLI\CommandInterface;
+    use SquareRouting\Core\DependencyContainer;
+
+    class MyNewCommand extends AbstractCommand implements CommandInterface
+    {
+        public function getName(): string
+        {
+            return 'my-new-command';
+        }
+
+        public function getDescription(): string
+        {
+            return 'This is a description of my new command.';
+        }
+
+        public function execute(array $args): void
+        {
+            echo "Hello from MyNewCommand!\n";
+            // You can access a DependencyContainer if needed, register dependencies in cli.php:
+            // $myService = $this->container->get(MyService::class);
+            // $myService->doSomething();
+        }
+    }
+    ```
+
+3.  **Run your new command**:
+
+    ```bash
+    cd backend
+    php cli.php my-new-command
+    ```
 
 ## Run the Server
 
