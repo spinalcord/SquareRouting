@@ -7,11 +7,13 @@ namespace SquareRouting\Core;
 use InvalidArgumentException;
 use RuntimeException;
 use SquareRouting\Core\Database\Table;
+use SquareRouting\Core\Scheme\ColumnName;
+use SquareRouting\Core\Scheme\TableName;
 
 class Account
 {
     private Database $db;
-    private string $tableName = 'users';
+    private string $tableName = TableName::USERS;
     private string $sessionKey = 'userId';
     private int $passwordMinLength = 8;
     private RateLimiter $rateLimiter;
@@ -42,11 +44,11 @@ class Account
         }
 
         $userData = array_merge([
-            'email' => strtolower(trim($email)),
-            'password' => $this->hashPassword($password),
-            'created_at' => date('Y-m-d H:i:s'),
-            'email_verified' => 0,
-            'status' => 'active',
+            ColumnName::EMAIL => strtolower(trim($email)),
+            ColumnName::PASSWORD => $this->hashPassword($password),
+            ColumnName::CREATED_AT => date('Y-m-d H:i:s'),
+            ColumnName::EMAIL_VERIFIED => 0,
+            ColumnName::STATUS => 'active',
         ], $additionalData);
 
         $userId = $this->db->insert($this->tableName, $userData);
@@ -73,22 +75,22 @@ class Account
 
         $user = $this->getUserByEmail($email);
 
-        if (! $user || ! $this->verifyPassword($password, $user['password'])) {
+        if (! $user || ! $this->verifyPassword($password, $user[ColumnName::PASSWORD])) {
             $this->rateLimiter->registerAttempt($this->loginRateLimitKey, $email);
             throw new InvalidArgumentException('Invalid email or password');
         }
 
-        if ($user['status'] !== 'active') {
+        if ($user[ColumnName::STATUS] !== 'active') {
             throw new RuntimeException('Account is not active');
         }
 
         // Successful login
         $this->rateLimiter->unblockClient($this->loginRateLimitKey, $email); // Clear any previous failed attempts
-        $this->updateLastLogin($user['id']);
-        $this->startSession($user['id']);
+        $this->updateLastLogin($user[ColumnName::ID]);
+        $this->startSession($user[ColumnName::ID]);
 
         if ($rememberMe) {
-            $this->setRememberToken($user['id']);
+            $this->setRememberToken($user[ColumnName::ID]);
         }
 
         return true;
@@ -155,14 +157,14 @@ class Account
             throw new RuntimeException('User not found');
         }
 
-        if (! $this->verifyPassword($currentPassword, $user['password'])) {
+        if (! $this->verifyPassword($currentPassword, $user[ColumnName::PASSWORD])) {
             throw new InvalidArgumentException('Current password is incorrect');
         }
 
         $result = $this->db->update($this->tableName, [
-            'password' => $this->hashPassword($newPassword),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], ['id' => $userId]);
+            ColumnName::PASSWORD => $this->hashPassword($newPassword),
+            ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $userId]);
 
         return $result > 0;
     }
@@ -179,11 +181,11 @@ class Account
         }
 
         $result = $this->db->update($this->tableName, [
-            'password' => $this->hashPassword($newPassword),
-            'reset_token' => null,
-            'reset_token_expires' => null,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], ['id' => $user['id']]);
+            ColumnName::PASSWORD => $this->hashPassword($newPassword),
+            ColumnName::RESET_TOKEN => null,
+            ColumnName::RESET_TOKEN_EXPIRES => null,
+            ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $user[ColumnName::ID]]);
 
         return $result > 0;
     }
@@ -204,10 +206,10 @@ class Account
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
         $this->db->update($this->tableName, [
-            'reset_token' => $token,
-            'reset_token_expires' => $expires,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], ['id' => $user['id']]);
+            ColumnName::RESET_TOKEN => $token,
+            ColumnName::RESET_TOKEN_EXPIRES => $expires,
+            ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $user[ColumnName::ID]]);
 
         return $token;
     }
@@ -224,19 +226,19 @@ class Account
         }
 
         // Remove sensitive fields
-        unset($data['id'], $data['password'], $data['reset_token'], $data['reset_token_expires']);
+        unset($data[ColumnName::ID], $data[ColumnName::PASSWORD], $data[ColumnName::RESET_TOKEN], $data[ColumnName::RESET_TOKEN_EXPIRES]);
 
-        if (isset($data['email'])) {
-            $data['email'] = strtolower(trim($data['email']));
+        if (isset($data[ColumnName::EMAIL])) {
+            $data[ColumnName::EMAIL] = strtolower(trim($data[ColumnName::EMAIL]));
 
-            if ($this->emailExistsForOtherUser($data['email'], $userId)) {
+            if ($this->emailExistsForOtherUser($data[ColumnName::EMAIL], $userId)) {
                 throw new InvalidArgumentException('Email address already exists');
             }
         }
 
-        $data['updated_at'] = date('Y-m-d H:i:s');
+        $data[ColumnName::UPDATED_AT] = date('Y-m-d H:i:s');
 
-        $result = $this->db->update($this->tableName, $data, ['id' => $userId]);
+        $result = $this->db->update($this->tableName, $data, [ColumnName::ID => $userId]);
 
         return $result > 0;
     }
@@ -252,7 +254,7 @@ class Account
             throw new RuntimeException('User not logged in');
         }
 
-        $result = $this->db->delete($this->tableName, ['id' => $userId]);
+        $result = $this->db->delete($this->tableName, [ColumnName::ID => $userId]);
 
         if ($result > 0) {
             $this->logout();
@@ -272,10 +274,10 @@ class Account
         }
 
         $result = $this->db->update($this->tableName, [
-            'email_verified' => 1,
-            'email_verification_token' => null,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], ['id' => $user['id']]);
+            ColumnName::EMAIL_VERIFIED => 1,
+            ColumnName::EMAIL_VERIFICATION_TOKEN => null,
+            ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $user[ColumnName::ID]]);
 
         return $result > 0;
     }
@@ -294,9 +296,9 @@ class Account
         $token = bin2hex(random_bytes(32));
 
         $this->db->update($this->tableName, [
-            'email_verification_token' => $token,
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], ['id' => $userId]);
+            ColumnName::EMAIL_VERIFICATION_TOKEN => $token,
+            ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $userId]);
 
         return $token;
     }
@@ -338,38 +340,38 @@ class Account
 
     private function emailExists(string $email): bool
     {
-        return $this->db->exists($this->tableName, ['email' => $email]);
+        return $this->db->exists($this->tableName, [ColumnName::EMAIL => $email]);
     }
 
     private function emailExistsForOtherUser(string $email, int $excludeUserId): bool
     {
-        $sql = "SELECT id FROM {$this->tableName} WHERE email = :email AND id != :userId LIMIT 1";
+        $sql = "SELECT " . ColumnName::ID . " FROM {$this->tableName} WHERE " . ColumnName::EMAIL . " = :email AND " . ColumnName::ID . " != :userId LIMIT 1";
 
-        return $this->db->fetch($sql, ['email' => $email, 'userId' => $excludeUserId]) !== false;
+        return $this->db->fetch($sql, [ColumnName::EMAIL => $email, 'userId' => $excludeUserId]) !== false;
     }
 
     private function userExists(int $userId): bool
     {
-        return $this->db->exists($this->tableName, ['id' => $userId]);
+        return $this->db->exists($this->tableName, [ColumnName::ID => $userId]);
     }
 
     private function getUserByEmail(string $email): ?array
     {
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE email = :email", ['email' => $email]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE " . ColumnName::EMAIL . " = :email", [ColumnName::EMAIL => $email]);
 
         return $user ?: null;
     }
 
     private function getUserById(int $userId): ?array
     {
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE id = :id", ['id' => $userId]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE " . ColumnName::ID . " = :id", [ColumnName::ID => $userId]);
 
         return $user ?: null;
     }
 
     private function getUserByResetToken(string $token): ?array
     {
-        $sql = "SELECT * FROM {$this->tableName} WHERE reset_token = :token AND reset_token_expires > :now";
+        $sql = "SELECT * FROM {$this->tableName} WHERE " . ColumnName::RESET_TOKEN . " = :token AND " . ColumnName::RESET_TOKEN_EXPIRES . " > :now";
         $user = $this->db->fetch($sql, ['token' => $token, 'now' => date('Y-m-d H:i:s')]);
 
         return $user ?: null;
@@ -377,7 +379,7 @@ class Account
 
     private function getUserByVerificationToken(string $token): ?array
     {
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE email_verification_token = :token", ['token' => $token]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE " . ColumnName::EMAIL_VERIFICATION_TOKEN . " = :token", ['token' => $token]);
 
         return $user ?: null;
     }
@@ -411,9 +413,9 @@ class Account
         $expires = time() + (30 * 24 * 60 * 60); // 30 days
 
         $this->db->update($this->tableName, [
-            'remember_token' => hash('sha256', $token),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ], ['id' => $userId]);
+            ColumnName::REMEMBER_TOKEN => hash('sha256', $token),
+            ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $userId]);
 
         setcookie('rememberToken', $token, $expires, '/', '', true, true);
     }
@@ -422,7 +424,7 @@ class Account
     {
         if (isset($_COOKIE['rememberToken'])) {
             $hashedToken = hash('sha256', $_COOKIE['rememberToken']);
-            $this->db->update($this->tableName, ['remember_token' => null], ['remember_token' => $hashedToken]);
+            $this->db->update($this->tableName, [ColumnName::REMEMBER_TOKEN => null], [ColumnName::REMEMBER_TOKEN => $hashedToken]);
             setcookie('rememberToken', '', time() - 3600, '/', '', true, true);
         }
     }
@@ -430,10 +432,10 @@ class Account
     private function validateRememberToken(string $token): bool
     {
         $hashedToken = hash('sha256', $token);
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE remember_token = :token", ['token' => $hashedToken]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE " . ColumnName::REMEMBER_TOKEN . " = :token", ['token' => $hashedToken]);
 
         if ($user) {
-            $this->startSession($user['id']);
+            $this->startSession($user[ColumnName::ID]);
 
             return true;
         }
@@ -444,8 +446,8 @@ class Account
     private function updateLastLogin(int $userId): void
     {
         $this->db->update($this->tableName, [
-            'last_login' => date('Y-m-d H:i:s'),
-        ], ['id' => $userId]);
+            ColumnName::LAST_LOGIN => date('Y-m-d H:i:s'),
+        ], [ColumnName::ID => $userId]);
     }
 
     private function ensureUserTableExists(): void

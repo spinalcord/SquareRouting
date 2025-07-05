@@ -6,6 +6,8 @@ namespace SquareRouting\Core;
 
 use Exception;
 use InvalidArgumentException;
+use SquareRouting\Core\Scheme\ColumnName;
+use SquareRouting\Core\Scheme\TableName;
 
 class Configuration
 {
@@ -40,25 +42,25 @@ class Configuration
         $serializedValue = $this->serializeValue($defaultValue);
 
         // Check if configuration already exists
-        if ($this->database->exists('configurations', ['name' => $key])) {
+        if ($this->database->exists(TableName::CONFIGURATIONS, [ColumnName::NAME => $key])) {
             // Update registration info but keep current value
-            $this->database->update('configurations', [
-                'default_value' => $serializedDefault,
-                'label' => $label,
-                'description' => $description,
-                'type' => $type,
-                'updated_at' => date('Y-m-d H:i:s'),
-            ], ['name' => $key]);
+            $this->database->update(TableName::CONFIGURATIONS, [
+                ColumnName::DEFAULT_VALUE => $serializedDefault,
+                ColumnName::LABEL => $label,
+                ColumnName::DESCRIPTION => $description,
+                ColumnName::TYPE => $type,
+                ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+            ], [ColumnName::NAME => $key]);
         } else {
             // Insert new configuration
-            $this->database->insert('configurations', [
-                'name' => $key,
-                'value' => $serializedValue,
-                'default_value' => $serializedDefault,
-                'label' => $label,
-                'description' => $description,
-                'type' => $type,
-                'created_at' => date('Y-m-d H:i:s'),
+            $this->database->insert(TableName::CONFIGURATIONS, [
+                ColumnName::NAME => $key,
+                ColumnName::VALUE => $serializedValue,
+                ColumnName::DEFAULT_VALUE => $serializedDefault,
+                ColumnName::LABEL => $label,
+                ColumnName::DESCRIPTION => $description,
+                ColumnName::TYPE => $type,
+                ColumnName::CREATED_AT => date('Y-m-d H:i:s'),
             ]);
         }
 
@@ -212,10 +214,10 @@ class Configuration
             if (isset($this->registeredConfigs[$key])) {
                 $serializedValue = $this->serializeValue($value);
 
-                $this->database->update('configurations', [
-                    'value' => $serializedValue,
-                    'updated_at' => date('Y-m-d H:i:s'),
-                ], ['name' => $key]);
+                $this->database->update(TableName::CONFIGURATIONS, [
+                    ColumnName::VALUE => $serializedValue,
+                    ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
+                ], [ColumnName::NAME => $key]);
             }
         }
 
@@ -273,7 +275,7 @@ class Configuration
         $this->validateKey($key);
 
         // Remove from database
-        $this->database->delete('configurations', ['name' => $key]);
+        $this->database->delete(TableName::CONFIGURATIONS, [ColumnName::NAME => $key]);
 
         // Remove from memory
         unset($this->configurations[$key]);
@@ -348,18 +350,18 @@ class Configuration
     private function loadConfigurations(): void
     {
         try {
-            $configs = $this->database->select('configurations');
+            $configs = $this->database->select(TableName::CONFIGURATIONS);
 
             foreach ($configs as $config) {
-                $value = $this->deserializeValue($config['value'], $config['type']);
-                $defaultValue = $this->deserializeValue($config['default_value'], $config['type']);
+                $value = $this->deserializeValue($config[ColumnName::VALUE], $config[ColumnName::TYPE]);
+                $defaultValue = $this->deserializeValue($config[ColumnName::DEFAULT_VALUE], $config[ColumnName::TYPE]);
 
-                $this->configurations[$config['name']] = $value;
-                $this->registeredConfigs[$config['name']] = [
+                $this->configurations[$config[ColumnName::NAME]] = $value;
+                $this->registeredConfigs[$config[ColumnName::NAME]] = [
                     'defaultValue' => $defaultValue,
-                    'label' => $config['label'],
-                    'description' => $config['description'],
-                    'type' => $config['type'],
+                    'label' => $config[ColumnName::LABEL],
+                    'description' => $config[ColumnName::DESCRIPTION],
+                    'type' => $config[ColumnName::TYPE],
                 ];
             }
         } catch (Exception $e) {
