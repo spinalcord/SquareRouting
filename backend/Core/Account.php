@@ -13,7 +13,7 @@ use SquareRouting\Core\Scheme\TableName;
 class Account
 {
     private Database $db;
-    private string $tableName = TableName::USERS;
+    private string $tableName = TableName::USER;
     private string $sessionKey = 'userId';
     private int $passwordMinLength = 8;
     private RateLimiter $rateLimiter;

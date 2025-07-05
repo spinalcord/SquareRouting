@@ -42,9 +42,9 @@ class Configuration
         $serializedValue = $this->serializeValue($defaultValue);
 
         // Check if configuration already exists
-        if ($this->database->exists(TableName::CONFIGURATIONS, [ColumnName::NAME => $key])) {
+        if ($this->database->exists(TableName::CONFIGURATION, [ColumnName::NAME => $key])) {
             // Update registration info but keep current value
-            $this->database->update(TableName::CONFIGURATIONS, [
+            $this->database->update(TableName::CONFIGURATION, [
                 ColumnName::DEFAULT_VALUE => $serializedDefault,
                 ColumnName::LABEL => $label,
                 ColumnName::DESCRIPTION => $description,
@@ -53,7 +53,7 @@ class Configuration
             ], [ColumnName::NAME => $key]);
         } else {
             // Insert new configuration
-            $this->database->insert(TableName::CONFIGURATIONS, [
+            $this->database->insert(TableName::CONFIGURATION, [
                 ColumnName::NAME => $key,
                 ColumnName::VALUE => $serializedValue,
                 ColumnName::DEFAULT_VALUE => $serializedDefault,
@@ -214,7 +214,7 @@ class Configuration
             if (isset($this->registeredConfigs[$key])) {
                 $serializedValue = $this->serializeValue($value);
 
-                $this->database->update(TableName::CONFIGURATIONS, [
+                $this->database->update(TableName::CONFIGURATION, [
                     ColumnName::VALUE => $serializedValue,
                     ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
                 ], [ColumnName::NAME => $key]);
@@ -275,7 +275,7 @@ class Configuration
         $this->validateKey($key);
 
         // Remove from database
-        $this->database->delete(TableName::CONFIGURATIONS, [ColumnName::NAME => $key]);
+        $this->database->delete(TableName::CONFIGURATION, [ColumnName::NAME => $key]);
 
         // Remove from memory
         unset($this->configurations[$key]);
@@ -350,7 +350,7 @@ class Configuration
     private function loadConfigurations(): void
     {
         try {
-            $configs = $this->database->select(TableName::CONFIGURATIONS);
+            $configs = $this->database->select(TableName::CONFIGURATION);
 
             foreach ($configs as $config) {
                 $value = $this->deserializeValue($config[ColumnName::VALUE], $config[ColumnName::TYPE]);

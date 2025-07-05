@@ -13,7 +13,7 @@ class Scheme
 {
     public function account(): Table
     {
-        $account = new Table('users');
+        $account = new Table('user');
 
         // Define columns
         $account->id = ColumnType::INT;
@@ -80,7 +80,7 @@ class Scheme
 
     public function configuration(): Table
     {
-        $configuration = new Table('configurations');
+        $configuration = new Table('configuration');
 
         // Define columns
         $configuration->id = ColumnType::INT;
