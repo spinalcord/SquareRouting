@@ -44,8 +44,8 @@ class Account
         $userData = array_merge([
             'email' => strtolower(trim($email)),
             'password' => $this->hashPassword($password),
-            'createdAt' => date('Y-m-d H:i:s'),
-            'emailVerified' => 0,
+            'created_at' => date('Y-m-d H:i:s'),
+            'email_verified' => 0,
             'status' => 'active',
         ], $additionalData);
 
@@ -161,7 +161,7 @@ class Account
 
         $result = $this->db->update($this->tableName, [
             'password' => $this->hashPassword($newPassword),
-            'updatedAt' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
         ], ['id' => $userId]);
 
         return $result > 0;
@@ -180,9 +180,9 @@ class Account
 
         $result = $this->db->update($this->tableName, [
             'password' => $this->hashPassword($newPassword),
-            'resetToken' => null,
-            'resetTokenExpires' => null,
-            'updatedAt' => date('Y-m-d H:i:s'),
+            'reset_token' => null,
+            'reset_token_expires' => null,
+            'updated_at' => date('Y-m-d H:i:s'),
         ], ['id' => $user['id']]);
 
         return $result > 0;
@@ -204,9 +204,9 @@ class Account
         $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
         $this->db->update($this->tableName, [
-            'resetToken' => $token,
-            'resetTokenExpires' => $expires,
-            'updatedAt' => date('Y-m-d H:i:s'),
+            'reset_token' => $token,
+            'reset_token_expires' => $expires,
+            'updated_at' => date('Y-m-d H:i:s'),
         ], ['id' => $user['id']]);
 
         return $token;
@@ -224,7 +224,7 @@ class Account
         }
 
         // Remove sensitive fields
-        unset($data['id'], $data['password'], $data['resetToken'], $data['resetTokenExpires']);
+        unset($data['id'], $data['password'], $data['reset_token'], $data['reset_token_expires']);
 
         if (isset($data['email'])) {
             $data['email'] = strtolower(trim($data['email']));
@@ -234,7 +234,7 @@ class Account
             }
         }
 
-        $data['updatedAt'] = date('Y-m-d H:i:s');
+        $data['updated_at'] = date('Y-m-d H:i:s');
 
         $result = $this->db->update($this->tableName, $data, ['id' => $userId]);
 
@@ -272,9 +272,9 @@ class Account
         }
 
         $result = $this->db->update($this->tableName, [
-            'emailVerified' => 1,
-            'emailVerificationToken' => null,
-            'updatedAt' => date('Y-m-d H:i:s'),
+            'email_verified' => 1,
+            'email_verification_token' => null,
+            'updated_at' => date('Y-m-d H:i:s'),
         ], ['id' => $user['id']]);
 
         return $result > 0;
@@ -294,8 +294,8 @@ class Account
         $token = bin2hex(random_bytes(32));
 
         $this->db->update($this->tableName, [
-            'emailVerificationToken' => $token,
-            'updatedAt' => date('Y-m-d H:i:s'),
+            'email_verification_token' => $token,
+            'updated_at' => date('Y-m-d H:i:s'),
         ], ['id' => $userId]);
 
         return $token;
@@ -369,7 +369,7 @@ class Account
 
     private function getUserByResetToken(string $token): ?array
     {
-        $sql = "SELECT * FROM {$this->tableName} WHERE resetToken = :token AND resetTokenExpires > :now";
+        $sql = "SELECT * FROM {$this->tableName} WHERE reset_token = :token AND reset_token_expires > :now";
         $user = $this->db->fetch($sql, ['token' => $token, 'now' => date('Y-m-d H:i:s')]);
 
         return $user ?: null;
@@ -377,7 +377,7 @@ class Account
 
     private function getUserByVerificationToken(string $token): ?array
     {
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE emailVerificationToken = :token", ['token' => $token]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE email_verification_token = :token", ['token' => $token]);
 
         return $user ?: null;
     }
@@ -411,8 +411,8 @@ class Account
         $expires = time() + (30 * 24 * 60 * 60); // 30 days
 
         $this->db->update($this->tableName, [
-            'rememberToken' => hash('sha256', $token),
-            'updatedAt' => date('Y-m-d H:i:s'),
+            'remember_token' => hash('sha256', $token),
+            'updated_at' => date('Y-m-d H:i:s'),
         ], ['id' => $userId]);
 
         setcookie('rememberToken', $token, $expires, '/', '', true, true);
@@ -422,7 +422,7 @@ class Account
     {
         if (isset($_COOKIE['rememberToken'])) {
             $hashedToken = hash('sha256', $_COOKIE['rememberToken']);
-            $this->db->update($this->tableName, ['rememberToken' => null], ['rememberToken' => $hashedToken]);
+            $this->db->update($this->tableName, ['remember_token' => null], ['remember_token' => $hashedToken]);
             setcookie('rememberToken', '', time() - 3600, '/', '', true, true);
         }
     }
@@ -430,7 +430,7 @@ class Account
     private function validateRememberToken(string $token): bool
     {
         $hashedToken = hash('sha256', $token);
-        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE rememberToken = :token", ['token' => $hashedToken]);
+        $user = $this->db->fetch("SELECT * FROM {$this->tableName} WHERE remember_token = :token", ['token' => $hashedToken]);
 
         if ($user) {
             $this->startSession($user['id']);
@@ -444,7 +444,7 @@ class Account
     private function updateLastLogin(int $userId): void
     {
         $this->db->update($this->tableName, [
-            'lastLogin' => date('Y-m-d H:i:s'),
+            'last_login' => date('Y-m-d H:i:s'),
         ], ['id' => $userId]);
     }
 

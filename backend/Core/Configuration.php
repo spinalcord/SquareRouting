@@ -43,22 +43,22 @@ class Configuration
         if ($this->database->exists('configurations', ['name' => $key])) {
             // Update registration info but keep current value
             $this->database->update('configurations', [
-                'defaultValue' => $serializedDefault,
+                'default_value' => $serializedDefault,
                 'label' => $label,
                 'description' => $description,
                 'type' => $type,
-                'updatedAt' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
             ], ['name' => $key]);
         } else {
             // Insert new configuration
             $this->database->insert('configurations', [
                 'name' => $key,
                 'value' => $serializedValue,
-                'defaultValue' => $serializedDefault,
+                'default_value' => $serializedDefault,
                 'label' => $label,
                 'description' => $description,
                 'type' => $type,
-                'createdAt' => date('Y-m-d H:i:s'),
+                'created_at' => date('Y-m-d H:i:s'),
             ]);
         }
 
@@ -214,7 +214,7 @@ class Configuration
 
                 $this->database->update('configurations', [
                     'value' => $serializedValue,
-                    'updatedAt' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s'),
                 ], ['name' => $key]);
             }
         }
@@ -352,7 +352,7 @@ class Configuration
 
             foreach ($configs as $config) {
                 $value = $this->deserializeValue($config['value'], $config['type']);
-                $defaultValue = $this->deserializeValue($config['defaultValue'], $config['type']);
+                $defaultValue = $this->deserializeValue($config['default_value'], $config['type']);
 
                 $this->configurations[$config['name']] = $value;
                 $this->registeredConfigs[$config['name']] = [
