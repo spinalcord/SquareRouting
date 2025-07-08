@@ -663,14 +663,9 @@ php cli.php
 
 ### Creating New Commands
 
-You can easily extend the CLI by creating your own custom commands.
+You can easily extend the CLI by creating your own custom commands. Then add the instance into `cli.php`
 
 1.  **Create a new command file**:
-    After creating the file, your command will automatically be discovered by `cli.php` through reflection. No additional configuration or registration is needed.
-
-    Create a new PHP file in `backend/Core/CLI/Commands/` (e.g., `backend/Core/CLI/Commands/MyNewCommand.php`) with following template. Make sure your command ends with `*Command.php`.
-
-
     ```php
     // backend/Core/CLI/Commands/MyNewCommand.php
     <?php

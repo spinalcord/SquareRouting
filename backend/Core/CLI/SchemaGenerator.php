@@ -143,6 +143,60 @@ class SchemaGenerator
     }
 
     /**
+     * Generates the TableName.ts file content
+     */
+    private function generateTableNameTsFile(): string
+    {
+        $tableNames = $this->getTableNames();
+        
+        $content = "/**
+ * Constants for database table names
+ * Auto-generated from Scheme.php
+ */
+export enum TableName {
+";
+        
+        foreach ($tableNames as $tableName) {
+            $constantName = $this->toUpperSnakeCase($tableName);
+            $tableNameSnake = $this->toSnakeCase($tableName);
+            $content .= "  {$constantName} = '{$tableNameSnake}',
+";
+        }
+        
+        $content .= "}
+";
+        
+        return $content;
+    }
+
+    /**
+     * Generates the ColumnName.ts file content
+     */
+    private function generateColumnNameTsFile(): string
+    {
+        $columnNames = $this->getAllColumnNames();
+        
+        $content = "/**
+ * Constants for database column names
+ * Auto-generated from Scheme.php
+ */
+export enum ColumnName {
+";
+        
+        foreach ($columnNames as $columnName) {
+            $constantName = $this->toUpperSnakeCase($columnName);
+            $columnNameSnake = $this->toSnakeCase($columnName);
+            $content .= "  {$constantName} = '{$columnNameSnake}',
+";
+        }
+        
+        $content .= "}
+";
+        
+        return $content;
+    }
+
+    /**
      * Creates the output directory if it doesn't exist
      */
     private function ensureOutputDirectory(): void
@@ -168,6 +222,14 @@ class SchemaGenerator
         if (file_put_contents($tableNamePath, $tableNameContent) === false) {
             throw new \RuntimeException("Failed to write TableName.php to: {$tableNamePath}");
         }
+
+        // Generate TableName.ts
+        $tableNameTsContent = $this->generateTableNameTsFile();
+        $tableNameTsPath = $this->outputDir . 'TableName.ts';
+
+        if (file_put_contents($tableNameTsPath, $tableNameTsContent) === false) {
+            throw new \RuntimeException("Failed to write TableName.ts to: {$tableNameTsPath}");
+        }
         
         // Generate ColumnName.php
         $columnNameContent = $this->generateColumnNameFile();
@@ -176,18 +238,31 @@ class SchemaGenerator
         if (file_put_contents($columnNamePath, $columnNameContent) === false) {
             throw new \RuntimeException("Failed to write ColumnName.php to: {$columnNamePath}");
         }
+
+        // Generate ColumnName.ts
+        $columnNameTsContent = $this->generateColumnNameTsFile();
+        $columnNameTsPath = $this->outputDir . 'ColumnName.ts';
+
+        if (file_put_contents($columnNameTsPath, $columnNameTsContent) === false) {
+            throw new \RuntimeException("Failed to write ColumnName.ts to: {$columnNameTsPath}");
+        }
         
-        $this->printSuccess($tableNamePath, $columnNamePath);
+        $this->printSuccess($tableNamePath, $columnNamePath, $tableNameTsPath, $columnNameTsPath);
     }
 
     /**
      * Prints success message with generated files and constants
      */
-    private function printSuccess(string $tableNamePath, string $columnNamePath): void
+    /**
+     * Prints success message with generated files and constants
+     */
+    private function printSuccess(string $tableNamePath, string $columnNamePath, string $tableNameTsPath, string $columnNameTsPath): void
     {
         echo "Files generated successfully:\n";
         echo "- {$tableNamePath}\n";
         echo "- {$columnNamePath}\n";
+        echo "- {$tableNameTsPath}\n";
+        echo "- {$columnNameTsPath}\n";
         
         echo "\nGenerated table constants:\n";
         foreach ($this->getTableNames() as $tableName) {
@@ -205,7 +280,7 @@ class SchemaGenerator
     }
 
     /**
-     * Generates only the TableName.php file
+     * Generates only the TableName.php and TableName.ts files
      */
     public function generateTableNames(): void
     {
@@ -217,12 +292,20 @@ class SchemaGenerator
         if (file_put_contents($tableNamePath, $tableNameContent) === false) {
             throw new \RuntimeException("Failed to write TableName.php to: {$tableNamePath}");
         }
+
+        $tableNameTsContent = $this->generateTableNameTsFile();
+        $tableNameTsPath = $this->outputDir . 'TableName.ts';
+
+        if (file_put_contents($tableNameTsPath, $tableNameTsContent) === false) {
+            throw new \RuntimeException("Failed to write TableName.ts to: {$tableNameTsPath}");
+        }
         
         echo "TableName.php generated successfully: {$tableNamePath}\n";
+        echo "TableName.ts generated successfully: {$tableNameTsPath}\n";
     }
 
     /**
-     * Generates only the ColumnName.php file
+     * Generates only the ColumnName.php and ColumnName.ts files
      */
     public function generateColumnNames(): void
     {
@@ -234,8 +317,16 @@ class SchemaGenerator
         if (file_put_contents($columnNamePath, $columnNameContent) === false) {
             throw new \RuntimeException("Failed to write ColumnName.php to: {$columnNamePath}");
         }
+
+        $columnNameTsContent = $this->generateColumnNameTsFile();
+        $columnNameTsPath = $this->outputDir . 'ColumnName.ts';
+
+        if (file_put_contents($columnNameTsPath, $columnNameTsContent) === false) {
+            throw new \RuntimeException("Failed to write ColumnName.ts to: {$columnNameTsPath}");
+        }
         
         echo "ColumnName.php generated successfully: {$columnNamePath}\n";
+        echo "ColumnName.ts generated successfully: {$columnNameTsPath}\n";
     }
 
     /**
