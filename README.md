@@ -652,8 +652,7 @@ class MarkdownExampleController
 
 ## CLI Commands
 
-SquareRouting includes a command-line interface (`cli.php`) to perform various tasks, such as generating database schemas.
-
+SquareRouting includes a command-line interface (`cli.php`).
 To run a CLI command, navigate to the `backend` directory and execute `php cli.php [command-name]`.
 
 ```bash
@@ -661,51 +660,39 @@ cd backend
 php cli.php
 ```
 
-### Creating New Commands
+Here is how a command can look like:
 
-You can easily extend the CLI by creating your own custom commands. Then add the instance into `cli.php`
+```php
+namespace SquareRouting\CLI\Commands;
 
-1.  **Create a new command file**:
-    ```php
-    // backend/Core/CLI/Commands/MyNewCommand.php
-    <?php
+use SquareRouting\Core\CLI\Colors;
+use SquareRouting\Core\CLI\BaseCommand;
+use SquareRouting\Core\CLI\CommandInterface;
 
-    declare(strict_types=1);
-
-    namespace SquareRouting\Core\CLI\Commands;
-
-    use SquareRouting\Core\CLI\AbstractCommand;
-    use SquareRouting\Core\CLI\CommandInterface;
-    use SquareRouting\Core\DependencyContainer;
-
-    class MyNewCommand extends AbstractCommand implements CommandInterface
-    {
-        public function getName(): string
-        {
-            return 'my-new-command';
+class ExampleCommand extends BaseCommand implements CommandInterface {
+    public function execute(array $args): int {
+        $this->info("Creating backup...");
+        $this->info("Creating backup: TestBackup");
+        for ($i = 1; $i <= 5; $i++) {
+            sleep(1);
+            $this->progress($i, 5, "Backing up data...");
         }
+        $this->output("Check your Data", Colors::BOLD . Colors::GREEN);
+        $this->success("Backup created successfully: TestBackup");
+        $this->warning("Make sure everything is fine.");
+        $to = $this->ask("Enter recipient email");
+        $subject = $this->ask("Enter subject", false) ?: "Test Email";
+        $this->confirm("Your Subject was: {$subject}?");
 
-        public function getDescription(): string
-        {
-            return 'This is a description of my new command.';
-        }
-
-        public function execute(array $args): void
-        {
-            echo "Hello from MyNewCommand!\n";
-            // You can access a DependencyContainer if needed, register dependencies in cli.php:
-            // $myService = $this->container->get(MyService::class);
-            // $myService->doSomething();
-        }
+        $this->error("Test error message: {$subject}?");
+        return 0;
     }
-    ```
-
-3.  **Run your new command**:
-
-    ```bash
-    cd backend
-    php cli.php my-new-command
-    ```
+    
+    public function getDescription(): string {
+        return "Create a system backup";
+    }
+}
+```
 
 ## Run the Server
 

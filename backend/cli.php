@@ -1,64 +1,49 @@
 <?php
 
-declare(strict_types=1);
 
-use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\DotEnv;
-use SquareRouting\Core\CLI\CommandInterface;
-use SquareRouting\Core\CLI\Commands\GenerateSchemaCommand;
-use SquareRouting\Core\CLI\Commands\HelpCommand;
+#!/usr/bin/env php
 
-require_once __DIR__ . '/../vendor/autoload.php';
+/**
+ * Modern PHP CLI Application
+ * 
+ * Usage: php cli.php [command] [options]
+ * 
+ * 
+ * Add new commands by creating classes in the Commands directory
+ */
 
-////////////////////////////////////
-// SETUP DependencyContainer
-////////////////////////////////////
-$envFileLocation = __DIR__ . '/Configs/.env';
-$cacheLocation = __DIR__ . '/Cache';
-$sqliteFileLocation = __DIR__ . '/Database/';
-$container = new DependencyContainer;
+// Error reporting
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-$container->register(DotEnv::class, parameters: ['path' => $envFileLocation]);
-$dotEnv = $container->get(DotEnv::class);
+// Composer Autoloader
+require __DIR__ . '/../vendor/autoload.php';
 
-$container->register(SquareRouting\Core\Scheme::class);
-$scheme = $container->get(SquareRouting\Core\Scheme::class);
-$container->register(SquareRouting\Core\CLI\SchemaGenerator::class, parameters: ['scheme' => $scheme]);
+use SquareRouting\Core\CLI\CLIApplication;
+use SquareRouting\CLI\Commands\HelpCommand;
+use SquareRouting\CLI\Commands\VersionCommand;
+use SquareRouting\CLI\Commands\ExampleCommand;
 
-$args = $_SERVER['argv'];
-$commandName = $args[1] ?? ''; // Default to 'help' if no command is provided
+// Run the application
+if (php_sapi_name() === 'cli') {
+    $app = new CLIApplication();
 
-////////////////////////////////////
-// CLI Command Handling
-////////////////////////////////////
+    // Register commands
+    // First, instantiate all commands
+    $helpCommand = new HelpCommand([]); // Initialize with empty array, will be updated later
+    $versionCommand = new VersionCommand();
+    $exampleCommand = new ExampleCommand();
 
-// Add your commands Like this
+    // Register them with the application
+    $app->registerCommand('help', $helpCommand);
+    $app->registerCommand('version', $versionCommand);
+    $app->registerCommand('exampleCommand', $exampleCommand);
 
-$generateSchemaCommand = new GenerateSchemaCommand($args, $container);
-$helpCommand = new HelpCommand($args, $container);
-//other cmd
+    // Now update the HelpCommand with the full list of registered commands
+    $helpCommand->setCommands($app->getCommands());
 
-$commandInstances = [
-    $generateSchemaCommand,
-    $helpCommand,
-    //other cmd
-];
-
-
-////////////////////////////////////
-////////////////////////////////////
-
-$commands = [];
-foreach ($commandInstances as $command) {
-    $commands[$command->getName()] = $command;
-}
-
-if (isset($commands[$commandName])) {
-    $commands[$commandName]->execute($args);
+    exit($app->run($argv));
 } else {
-    // echo "Unknown command: {$commandName}\n";
-    echo "Available CLI commands:\n";
-    foreach ($commands as $name => $command) {
-        echo sprintf("  %-20s - %s\n", $command->getName(), $command->getDescription());
-    }
+    echo "This script can only be run from the command line.";
+    exit(1);
 }

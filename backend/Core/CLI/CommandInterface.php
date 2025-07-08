@@ -1,12 +1,8 @@
 <?php
 
-declare(strict_types=1);
-
 namespace SquareRouting\Core\CLI;
 
-interface CommandInterface
-{
-    public function getName(): string;
+interface CommandInterface {
+    public function execute(array $args): int;
     public function getDescription(): string;
-    public function execute(array $args): void;
 }

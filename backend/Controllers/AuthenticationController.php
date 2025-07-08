@@ -6,18 +6,22 @@ use Exception;
 use InvalidArgumentException;
 use RuntimeException;
 use SquareRouting\Core\Account;
+use SquareRouting\Core\Database;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response;
 use SquareRouting\Core\View;
+use SquareRouting\Core\Language;
 
 class AuthenticationController
 {
-    public Request $request;
-    public RateLimiter $rateLimiter;
-    public View $view;
-    public Account $account;
+    private Request $request;
+    private RateLimiter $rateLimiter;
+    private View $view;
+    private Account $account;
+    private Language $language;
+    private Database $db;
 
     public function __construct(DependencyContainer $container)
     {
@@ -25,6 +29,8 @@ class AuthenticationController
         $this->request = $container->get(Request::class);
         $this->view = $container->get(View::class);
         $this->account = $container->get(Account::class);
+        $this->language = $container->get(Language::class);
+        $this->db = $container->get(Database::class);
     }
 
     public function accountExample(): Response
