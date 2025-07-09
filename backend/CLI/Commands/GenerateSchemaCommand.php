@@ -17,7 +17,7 @@ class GenerateSchemaCommand extends BaseCommand implements CommandInterface
         $namespace = $this->ask("Enter the namespace for the generated schema files (default: {$defaultNamespace})", false);
         $namespace = $namespace ?: $defaultNamespace;
 
-        $defaultOutputDir = 'backend/Core/Schema/'; // This is derived from the default namespace
+        $defaultOutputDir = 'Core/Schema/'; // This is derived from the default namespace
         $outputDir = $this->ask("Enter the output directory for the generated schema files (default: {$defaultOutputDir})", false);
         $outputDir = $outputDir ?: $defaultOutputDir;
 
