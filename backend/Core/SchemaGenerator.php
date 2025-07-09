@@ -93,7 +93,7 @@ readonly class SchemaGenerator
             fn(string $tableName) => sprintf(
                 "    const %s = '%s';",
                 $this->toUpperSnakeCase($tableName),
-                $this->toSnakeCase($tableName)
+                $tableName  // Ursprünglicher Wert ohne snake_case Umwandlung
             ),
             $tableNames
         );
@@ -129,7 +129,7 @@ PHP;
             fn(string $columnName) => sprintf(
                 "    const %s = '%s';",
                 $this->toUpperSnakeCase($columnName),
-                $this->toSnakeCase($columnName)
+                $columnName  // Ursprünglicher Wert ohne snake_case Umwandlung
             ),
             $columnNames
         );
@@ -165,7 +165,7 @@ PHP;
             fn(string $tableName) => sprintf(
                 "  %s = '%s',",
                 $this->toUpperSnakeCase($tableName),
-                $this->toSnakeCase($tableName)
+                $tableName  // Ursprünglicher Wert ohne snake_case Umwandlung
             ),
             $tableNames
         );
@@ -194,7 +194,7 @@ TS;
             fn(string $columnName) => sprintf(
                 "  %s = '%s',",
                 $this->toUpperSnakeCase($columnName),
-                $this->toSnakeCase($columnName)
+                $columnName  // Ursprünglicher Wert ohne snake_case Umwandlung
             ),
             $columnNames
         );
@@ -270,15 +270,13 @@ TS;
         echo "\nGenerated table constants:\n";
         foreach ($this->getTableNames() as $tableName) {
             $constantName = $this->toUpperSnakeCase($tableName);
-            $tableNameSnake = $this->toSnakeCase($tableName);
-            echo "- {$constantName} = '{$tableNameSnake}'\n";
+            echo "- {$constantName} = '{$tableName}'\n";  // Ursprünglicher Wert
         }
         
         echo "\nGenerated column constants:\n";
         foreach ($this->getAllColumnNames() as $columnName) {
             $constantName = $this->toUpperSnakeCase($columnName);
-            $columnNameSnake = $this->toSnakeCase($columnName);
-            echo "- {$constantName} = '{$columnNameSnake}'\n";
+            echo "- {$constantName} = '{$columnName}'\n";  // Ursprünglicher Wert
         }
     }
 

@@ -29,8 +29,6 @@ class Account
         if (! $this->db->isConnectionActive()) {
             throw new RuntimeException('Account feature needs a Database. Database connection not established or is inactive. Ensure the Database class is correctly configured and connected in the DependencyContainer.');
         }
-
-        $this->ensureUserTableExists();
     }
 
     /**
@@ -448,19 +446,5 @@ class Account
         $this->db->update($this->tableName, [
             ColumnName::LAST_LOGIN => date('Y-m-d H:i:s'),
         ], [ColumnName::ID => $userId]);
-    }
-
-    private function ensureUserTableExists(): void
-    {
-        $this->createUserTable();
-    }
-
-    private function createUserTable(): void
-    {
-        // Create users table using ORM-style pattern
-        $schema = new Schema;
-        $accountSchema = $schema->account();
-        // Create the table
-        $this->db->createTableIfNotExists($accountSchema);
     }
 }

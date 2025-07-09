@@ -7,10 +7,6 @@ namespace SquareRouting\Core;
 use SquareRouting\Core\Database\ColumnType;
 use SquareRouting\Core\Database\TableSchema;
 use SquareRouting\Core\Database\Table;
-use SquareRouting\Core\Database\ForeignKey;
-use SquareRouting\Core\Database\ForeignKeyAction;
-use ReflectionClass;
-use ReflectionMethod;
 
 class Schema
 {

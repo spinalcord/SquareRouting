@@ -25,7 +25,6 @@ class Configuration
     {
         $this->database = $database;
         $this->autoSave = $autoSave;
-        $this->initializeTable();
         $this->loadConfigurations();
     }
 
@@ -335,13 +334,6 @@ class Configuration
         $this->clearArrayCache();
 
         return $this;
-    }
-
-    private function initializeTable(): void
-    {
-        $schema = new Schema;
-        $table = $schema->configuration();
-        $this->database->createTableIfNotExists($table);
     }
 
     /**

@@ -12,6 +12,7 @@ use SquareRouting\Core\Language;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
+use SquareRouting\Core\Schema;
 use SquareRouting\Core\View;
 use SquareRouting\Routes\ApplicationRoutes;
 
@@ -75,6 +76,19 @@ $config = $container->get(MarkdownRenderer::class);
 // //////////////////////////////////
 $corsMiddleware = new CorsMiddleware;
 $corsMiddleware->handle($dotEnv->get('ALLOWED_ORIGINS'));
+
+////////////////////////////////////
+// Create tables
+////////////////////////////////////
+$schema = new Schema;
+
+$accountSchema = $schema->account();
+$db->createTableIfNotExists($accountSchema);
+
+
+$configSchema = $schema->configuration();
+$db->createTableIfNotExists($configSchema);
+
 
 // //////////////////////////////////
 // SETUP Routing
