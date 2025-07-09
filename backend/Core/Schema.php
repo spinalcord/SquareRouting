@@ -21,14 +21,14 @@ class Schema
         $account->password = ColumnType::VARCHAR;
         $account->username = ColumnType::VARCHAR;
         $account->status = ColumnType::VARCHAR;
-        $account->emailVerified = ColumnType::BOOLEAN;
-        $account->emailVerificationToken = ColumnType::VARCHAR;
-        $account->resetToken = ColumnType::VARCHAR;
-        $account->resetTokenExpires = ColumnType::DATETIME;
-        $account->rememberToken = ColumnType::VARCHAR;
-        $account->lastLogin = ColumnType::DATETIME;
-        $account->createdAt = ColumnType::DATETIME;
-        $account->updatedAt = ColumnType::DATETIME;
+        $account->email_verified = ColumnType::BOOLEAN;
+        $account->email_verification_token = ColumnType::VARCHAR;
+        $account->reset_token = ColumnType::VARCHAR;
+        $account->reset_token_expires = ColumnType::DATETIME;
+        $account->remember_token = ColumnType::VARCHAR;
+        $account->last_login = ColumnType::DATETIME;
+        $account->created_at = ColumnType::DATETIME;
+        $account->updated_at = ColumnType::DATETIME;
 
         // Configure id column
         $account->id->autoIncrement = true;
@@ -53,25 +53,25 @@ class Schema
         $account->status->default = 'active';
 
         // Configure email verification
-        $account->emailVerified->nullable = false;
-        $account->emailVerified->default = false;
-        $account->emailVerificationToken->length = 64;
-        $account->emailVerificationToken->nullable = true;
+        $account->email_verified->nullable = false;
+        $account->email_verified->default = false;
+        $account->email_verification_token->length = 64;
+        $account->email_verification_token->nullable = true;
 
         // Configure reset token
-        $account->resetToken->length = 64;
-        $account->resetToken->nullable = true;
-        $account->resetTokenExpires->nullable = true;
+        $account->reset_token->length = 64;
+        $account->reset_token->nullable = true;
+        $account->reset_token_expires->nullable = true;
 
         // Configure remember token
-        $account->rememberToken->length = 64;
-        $account->rememberToken->nullable = true;
+        $account->remember_token->length = 64;
+        $account->remember_token->nullable = true;
 
         // Configure timestamps
-        $account->lastLogin->nullable = true;
-        $account->createdAt->nullable = false;
-        $account->createdAt->default = 'CURRENT_TIMESTAMP';
-        $account->updatedAt->nullable = true;
+        $account->last_login->nullable = true;
+        $account->created_at->nullable = false;
+        $account->created_at->default = 'CURRENT_TIMESTAMP';
+        $account->updated_at->nullable = true;
 
         // Create the table
         // $this->db->createTableIfNotExists($users);
@@ -88,12 +88,12 @@ class Schema
         $configuration->id = ColumnType::INT;
         $configuration->name = ColumnType::VARCHAR;
         $configuration->value = ColumnType::TEXT;
-        $configuration->defaultValue = ColumnType::TEXT;
+        $configuration->default_value = ColumnType::TEXT;
         $configuration->label = ColumnType::VARCHAR;
         $configuration->description = ColumnType::TEXT;
         $configuration->type = ColumnType::VARCHAR;
-        $configuration->createdAt = ColumnType::DATETIME;
-        $configuration->updatedAt = ColumnType::DATETIME;
+        $configuration->created_at = ColumnType::DATETIME;
+        $configuration->updated_at = ColumnType::DATETIME;
 
         // Configure id column
         $configuration->id->autoIncrement = true;
@@ -107,7 +107,7 @@ class Schema
         $configuration->value->nullable = true;
 
         // Configure default_value column
-        $configuration->defaultValue->nullable = true;
+        $configuration->default_value->nullable = true;
 
         // Configure label column
         $configuration->label->length = 255;
@@ -122,10 +122,10 @@ class Schema
         $configuration->type->default = 'string';
 
         // Configure timestamps
-        $configuration->createdAt->nullable = false;
-        $configuration->createdAt->default = 'CURRENT_TIMESTAMP';
+        $configuration->created_at->nullable = false;
+        $configuration->created_at->default = 'CURRENT_TIMESTAMP';
 
-        $configuration->updatedAt->nullable = true;
+        $configuration->updated_at->nullable = true;
 
         return $configuration;
     }
