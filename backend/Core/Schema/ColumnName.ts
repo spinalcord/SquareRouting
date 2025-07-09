@@ -1,6 +1,6 @@
 /**
  * Constants for database column names
- * Auto-generated from Scheme.php
+ * Auto-generated from Schema.php
  */
 export enum ColumnName {
   ID = 'id',

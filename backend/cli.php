@@ -23,6 +23,7 @@ use SquareRouting\Core\CLI\CLIApplication;
 use SquareRouting\CLI\Commands\HelpCommand;
 use SquareRouting\CLI\Commands\VersionCommand;
 use SquareRouting\CLI\Commands\ExampleCommand;
+use SquareRouting\CLI\Commands\GenerateSchemaCommand;
 
 // Run the application
 if (php_sapi_name() === 'cli') {
@@ -33,11 +34,13 @@ if (php_sapi_name() === 'cli') {
     $helpCommand = new HelpCommand([]); // Initialize with empty array, will be updated later
     $versionCommand = new VersionCommand();
     $exampleCommand = new ExampleCommand();
+    $generateSchemaCommand = new GenerateSchemaCommand();
 
     // Register them with the application
     $app->registerCommand('help', $helpCommand);
     $app->registerCommand('version', $versionCommand);
     $app->registerCommand('exampleCommand', $exampleCommand);
+    $app->registerCommand('generate:schema', $generateSchemaCommand);
 
     // Now update the HelpCommand with the full list of registered commands
     $helpCommand->setCommands($app->getCommands());

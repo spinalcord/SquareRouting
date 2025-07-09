@@ -1,6 +1,6 @@
 /**
  * Constants for database table names
- * Auto-generated from Scheme.php
+ * Auto-generated from Schema.php
  */
 export enum TableName {
   ACCOUNT = 'account',

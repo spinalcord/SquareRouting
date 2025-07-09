@@ -9,7 +9,7 @@ use SquareRouting\Core\Database\ForeignKeyAction;
 use SquareRouting\Core\Database\Table;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Response;
-use SquareRouting\Core\Scheme;
+use SquareRouting\Core\Schema;
 
 class TableExampleController
 {

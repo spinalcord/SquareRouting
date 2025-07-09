@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace SquareRouting\Core\Scheme;
+namespace SquareRouting\Core\Schema;
 
 /**
  * Constants for database column names
- * Auto-generated from Scheme.php
+ * Auto-generated from Schema.php
  */
 class ColumnName
 {

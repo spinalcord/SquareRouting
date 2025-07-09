@@ -7,8 +7,8 @@ namespace SquareRouting\Core;
 use InvalidArgumentException;
 use RuntimeException;
 use SquareRouting\Core\Database\Table;
-use SquareRouting\Core\Scheme\ColumnName;
-use SquareRouting\Core\Scheme\TableName;
+use SquareRouting\Core\Schema\ColumnName;
+use SquareRouting\Core\Schema\TableName;
 
 class Account
 {
@@ -458,9 +458,9 @@ class Account
     private function createUserTable(): void
     {
         // Create users table using ORM-style pattern
-        $scheme = new Scheme;
-        $accountScheme = $scheme->account();
+        $schema = new Schema;
+        $accountSchema = $schema->account();
         // Create the table
-        $this->db->createTableIfNotExists($accountScheme);
+        $this->db->createTableIfNotExists($accountSchema);
     }
 }

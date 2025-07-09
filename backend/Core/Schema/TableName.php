@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace SquareRouting\Core\Scheme;
+namespace SquareRouting\Core\Schema;
 
 /**
  * Constants for database table names
- * Auto-generated from Scheme.php
+ * Auto-generated from Schema.php
  */
 class TableName
 {

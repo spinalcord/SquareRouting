@@ -12,7 +12,7 @@ use SquareRouting\Core\Database\ForeignKeyAction;
 use ReflectionClass;
 use ReflectionMethod;
 
-class Scheme
+class Schema
 {
     #[TableSchema]
     public function account(): Table

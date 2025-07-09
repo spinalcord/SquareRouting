@@ -62,7 +62,7 @@ class CorsMiddleware
         }
 
         // Schema und Host zu lowercase
-        $schema = isset($parsed['scheme']) ? strtolower($parsed['scheme']) : '';
+        $schema = isset($parsed['schema']) ? strtolower($parsed['schema']) : '';
         $host = isset($parsed['host']) ? strtolower($parsed['host']) : '';
         $port = isset($parsed['port']) ? ':' . $parsed['port'] : '';
 

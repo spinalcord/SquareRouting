@@ -6,8 +6,8 @@ namespace SquareRouting\Core;
 
 use Exception;
 use InvalidArgumentException;
-use SquareRouting\Core\Scheme\ColumnName;
-use SquareRouting\Core\Scheme\TableName;
+use SquareRouting\Core\Schema\ColumnName;
+use SquareRouting\Core\Schema\TableName;
 
 class Configuration
 {
@@ -339,8 +339,8 @@ class Configuration
 
     private function initializeTable(): void
     {
-        $scheme = new Scheme;
-        $table = $scheme->configuration();
+        $schema = new Schema;
+        $table = $schema->configuration();
         $this->database->createTableIfNotExists($table);
     }
 
