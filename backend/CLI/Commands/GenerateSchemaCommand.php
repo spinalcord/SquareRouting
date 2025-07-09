@@ -12,7 +12,16 @@ class GenerateSchemaCommand extends BaseCommand implements CommandInterface
     public function execute(array $args): int
     {
         $schema = new Schema();
-        $generator = new SchemaGenerator($schema);
+
+        $defaultNamespace = 'SquareRouting\\Core\\Schema';
+        $namespace = $this->ask("Enter the namespace for the generated schema files (default: {$defaultNamespace})", false);
+        $namespace = $namespace ?: $defaultNamespace;
+
+        $defaultOutputDir = 'backend/Core/Schema/'; // This is derived from the default namespace
+        $outputDir = $this->ask("Enter the output directory for the generated schema files (default: {$defaultOutputDir})", false);
+        $outputDir = $outputDir ?: $defaultOutputDir;
+
+        $generator = new SchemaGenerator($schema, $namespace, $outputDir);
 
         $action = $this->ask("What do you want to generate? (all, tables, columns, stats)", false);
 

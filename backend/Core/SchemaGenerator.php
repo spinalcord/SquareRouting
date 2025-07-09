@@ -11,37 +11,11 @@ use SquareRouting\Core\Schema;
 
 readonly class SchemaGenerator
 {
-    private string $outputDir;
-
     public function __construct(
         private Schema $schema,
-        private string $namespace = 'SquareRouting\\Core\\Schema'
+        private string $namespace = 'SquareRouting\\Core\\Schema',
+        private string $outputDir = 'backend/Core/Schema/'
     ) {
-        $this->outputDir = $this->getOutputDirFromNamespace($this->namespace);
-    }
-
-    /**
-     * Derives the output directory from a given namespace.
-     * Assumes 'SquareRouting' base namespace maps to 'backend/' directory relative to project root.
-     */
-    private function getOutputDirFromNamespace(string $namespace): string
-    {
-        $baseNamespace = 'SquareRouting\\';
-        $basePath = 'backend/';
-
-        // Determine the project root dynamically.
-        // SchemaGenerator.php is in backend/Core/, so go up two levels.
-        $projectRoot = dirname(__DIR__, 2);
-
-        if (str_starts_with($namespace, $baseNamespace)) {
-            $namespaceWithoutBase = substr($namespace, strlen($baseNamespace));
-            $relativePath = str_replace('\\', '/', $namespaceWithoutBase);
-            return rtrim($projectRoot . '/' . $basePath . $relativePath, '/') . '/';
-        }
-
-        // Fallback for namespaces not starting with the base namespace
-        $relativePath = str_replace('\\', '/', $namespace);
-        return rtrim($projectRoot . '/' . $relativePath, '/') . '/';
     }
 
     /**
