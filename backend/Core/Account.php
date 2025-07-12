@@ -8,6 +8,8 @@ use InvalidArgumentException;
 use RuntimeException;
 use SquareRouting\Core\Schema\ColumnName;
 use SquareRouting\Core\Schema\TableName;
+use SquareRouting\Core\Schema\Permission;
+use SquareRouting\Core\Schema\Role;
 use Exception;
 
 class Account
@@ -45,7 +47,7 @@ class Account
 
         // Set default role if not specified
         if (!isset($additionalData[ColumnName::ROLE_ID])) {
-            $userRole = $this->getRoleByName('user');
+            $userRole = $this->getRoleByName(Role::USER->value);
             if (!$userRole) {
                 throw new RuntimeException('Default user role not found in database. Please run initializeDefaultRoles() first.');
             }
@@ -156,13 +158,14 @@ class Account
     /**
      * Check if current user has a specific permission
      */
-    public function hasPermission(string $permissionName, ?int $userId = null): bool
+    public function hasPermission(string|Permission $permission, ?int $userId = null): bool
     {
         $userId = $userId ?? $this->getCurrentUserId();
         if (!$userId) {
             return false;
         }
 
+        $permissionName = $permission instanceof Permission ? $permission->value : $permission;
         $permissions = $this->getUserPermissions($userId);
         return in_array($permissionName, array_column($permissions, ColumnName::NAME));
     }
@@ -170,13 +173,14 @@ class Account
     /**
      * Check if current user has a specific role
      */
-    public function hasRole(string $roleName, ?int $userId = null): bool
+    public function hasRole(string|Role $role, ?int $userId = null): bool
     {
         $userId = $userId ?? $this->getCurrentUserId();
         if (!$userId) {
             return false;
         }
 
+        $roleName = $role instanceof Role ? $role->value : $role;
         $userRole = $this->getUserRole($userId);
         return $userRole && $userRole[ColumnName::NAME] === $roleName;
     }
@@ -195,7 +199,7 @@ class Account
      */
     public function isAdmin(?int $userId = null): bool
     {
-        return $this->hasRole('admin', $userId);
+        return $this->hasRole(Role::ADMIN, $userId);
     }
 
     /**
@@ -209,7 +213,7 @@ class Account
         }
 
         $userRole = $this->getUserRole($userId);
-        return $userRole && in_array($userRole[ColumnName::NAME], ['admin', 'moderator']);
+        return $userRole && in_array($userRole[ColumnName::NAME], [Role::ADMIN->value, Role::MODERATOR->value]);
     }
 
     /**
@@ -279,15 +283,16 @@ class Account
     /**
      * Assign role to user
      */
-    public function assignRole(int $userId, string $roleName): bool
+    public function assignRole(int $userId, string|Role $role): bool
     {
-        $role = $this->getRoleByName($roleName);
-        if (!$role) {
+        $roleName = $role instanceof Role ? $role->value : $role;
+        $roleData = $this->getRoleByName($roleName);
+        if (!$roleData) {
             throw new InvalidArgumentException("Role '{$roleName}' does not exist");
         }
 
         $result = $this->db->update($this->tableName, [
-            ColumnName::ROLE_ID => $role[ColumnName::ID],
+            ColumnName::ROLE_ID => $roleData[ColumnName::ID],
             ColumnName::UPDATED_AT => date('Y-m-d H:i:s'),
         ], [ColumnName::ID => $userId]);
 
@@ -320,8 +325,9 @@ class Account
     /**
      * Get permissions for a specific role
      */
-    public function getRolePermissions(string $roleName): array
+    public function getRolePermissions(string|Role $role): array
     {
+        $roleName = $role instanceof Role ? $role->value : $role;
         $sql = "
             SELECT p.* 
             FROM " . TableName::PERMISSION . " p
@@ -350,9 +356,10 @@ class Account
     /**
      * Require permission for current user (throws exception if not authorized)
      */
-    public function requirePermission(string $permissionName, ?int $userId = null): void
+    public function requirePermission(string|Permission $permission, ?int $userId = null): void
     {
-        if (!$this->hasPermission($permissionName, $userId)) {
+        $permissionName = $permission instanceof Permission ? $permission->value : $permission;
+        if (!$this->hasPermission($permission, $userId)) {
             throw new RuntimeException("Access denied. Permission '{$permissionName}' required.");
         }
     }
@@ -360,9 +367,10 @@ class Account
     /**
      * Require role for current user (throws exception if not authorized)
      */
-    public function requireRole(string $roleName, ?int $userId = null): void
+    public function requireRole(string|Role $role, ?int $userId = null): void
     {
-        if (!$this->hasRole($roleName, $userId)) {
+        $roleName = $role instanceof Role ? $role->value : $role;
+        if (!$this->hasRole($role, $userId)) {
             throw new RuntimeException("Access denied. Role '{$roleName}' required.");
         }
     }
@@ -425,12 +433,7 @@ class Account
      */
     public function createDefaultRoles(): array
     {
-        $defaultRoles = [
-            [ColumnName::NAME => 'admin', ColumnName::DESCRIPTION => 'Full system administrator access', ColumnName::LEVEL => 1],
-            [ColumnName::NAME => 'moderator', ColumnName::DESCRIPTION => 'Content moderation and user management', ColumnName::LEVEL => 2],
-            [ColumnName::NAME => 'user', ColumnName::DESCRIPTION => 'Basic user access', ColumnName::LEVEL => 3],
-        ];
-
+        $defaultRoles = Role::getAllWithDetails();
         $createdRoles = [];
 
         foreach ($defaultRoles as $roleData) {
@@ -456,29 +459,7 @@ class Account
      */
     public function createDefaultPermissions(): array
     {
-        $defaultPermissions = [
-            // User management
-            [ColumnName::NAME => 'users.create', ColumnName::DESCRIPTION => 'Create new users'],
-            [ColumnName::NAME => 'users.read', ColumnName::DESCRIPTION => 'View user profiles'],
-            [ColumnName::NAME => 'users.update', ColumnName::DESCRIPTION => 'Edit user profiles'],
-            [ColumnName::NAME => 'users.delete', ColumnName::DESCRIPTION => 'Delete users'],
-            
-            // Content management
-            [ColumnName::NAME => 'content.create', ColumnName::DESCRIPTION => 'Create content'],
-            [ColumnName::NAME => 'content.read', ColumnName::DESCRIPTION => 'View content'],
-            [ColumnName::NAME => 'content.update', ColumnName::DESCRIPTION => 'Edit content'],
-            [ColumnName::NAME => 'content.delete', ColumnName::DESCRIPTION => 'Delete content'],
-            [ColumnName::NAME => 'content.moderate', ColumnName::DESCRIPTION => 'Moderate content'],
-            
-            // System settings
-            [ColumnName::NAME => 'settings.read', ColumnName::DESCRIPTION => 'View system settings'],
-            [ColumnName::NAME => 'settings.update', ColumnName::DESCRIPTION => 'Update system settings'],
-            
-            // Profile management
-            [ColumnName::NAME => 'profile.read', ColumnName::DESCRIPTION => 'View own profile'],
-            [ColumnName::NAME => 'profile.update', ColumnName::DESCRIPTION => 'Update own profile'],
-        ];
-
+        $defaultPermissions = Permission::getAllWithDescriptions();
         $createdPermissions = [];
 
         foreach ($defaultPermissions as $permissionData) {
@@ -504,32 +485,15 @@ class Account
      */
     public function assignDefaultPermissions(): void
     {
-        $rolePermissions = [
-            'admin' => [
-                'users.create', 'users.read', 'users.update', 'users.delete',
-                'content.create', 'content.read', 'content.update', 'content.delete', 'content.moderate',
-                'settings.read', 'settings.update',
-                'profile.read', 'profile.update'
-            ],
-            'moderator' => [
-                'users.read', 'users.update',
-                'content.create', 'content.read', 'content.update', 'content.delete', 'content.moderate',
-                'profile.read', 'profile.update'
-            ],
-            'user' => [
-                'content.read',
-                'profile.read', 'profile.update'
-            ]
-        ];
-
-        foreach ($rolePermissions as $roleName => $permissions) {
-            $role = $this->getRoleByName($roleName);
+        foreach (Role::cases() as $roleEnum) {
+            $role = $this->getRoleByName($roleEnum->value);
             if (!$role) {
                 continue;
             }
 
-            foreach ($permissions as $permissionName) {
-                $permission = $this->getPermissionByName($permissionName);
+            $permissions = $roleEnum->getDefaultPermissions();
+            foreach ($permissions as $permissionEnum) {
+                $permission = $this->getPermissionByName($permissionEnum->value);
                 if (!$permission) {
                     continue;
                 }
@@ -556,7 +520,7 @@ class Account
      */
     public function validateRequiredRoles(): bool
     {
-        $requiredRoles = ['admin', 'moderator', 'user'];
+        $requiredRoles = Role::getAllNames();
         $missingRoles = [];
 
         foreach ($requiredRoles as $roleName) {
@@ -580,7 +544,7 @@ class Account
      */
     public function areDefaultRolesInitialized(): bool
     {
-        $requiredRoles = ['admin', 'moderator', 'user'];
+        $requiredRoles = Role::getAllNames();
         
         foreach ($requiredRoles as $roleName) {
             if (!$this->getRoleByName($roleName)) {

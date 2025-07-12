@@ -12,6 +12,8 @@ use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Schema\ColumnName;
 use SquareRouting\Core\Schema\TableName;
+use SquareRouting\Core\Schema\Permission;
+use SquareRouting\Core\Schema\Role;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -93,7 +95,7 @@ class AccountTest extends TestCase
     {
         $email = 'test@example.com';
         $password = 'password123';
-        $userRole = [ColumnName::ID => 3, ColumnName::NAME => 'user'];
+        $userRole = [ColumnName::ID => 3, ColumnName::NAME => Role::USER->value];
 
         // Mock email nicht existiert
         $this->databaseMock
@@ -334,36 +336,38 @@ class AccountTest extends TestCase
         $_SESSION['userId'] = 1;
 
         $permissions = [
-            [ColumnName::NAME => 'users.read'],
-            [ColumnName::NAME => 'users.create']
+            [ColumnName::NAME => Permission::USERS_READ->value],
+            [ColumnName::NAME => Permission::USERS_CREATE->value]
         ];
 
         $this->databaseMock
             ->method('fetchAll')
             ->willReturn($permissions);
 
-        $this->assertTrue($this->account->hasPermission('users.read'));
-        $this->assertFalse($this->account->hasPermission('users.delete'));
+        $this->assertTrue($this->account->hasPermission(Permission::USERS_READ));
+        $this->assertTrue($this->account->hasPermission(Permission::USERS_READ->value)); // Test string variant
+        $this->assertFalse($this->account->hasPermission(Permission::USERS_DELETE));
     }
 
     public function testHasRoleWithValidRole(): void
     {
         $_SESSION['userId'] = 1;
 
-        $roleData = [ColumnName::NAME => 'admin'];
+        $roleData = [ColumnName::NAME => Role::ADMIN->value];
 
         $this->databaseMock
             ->method('fetch')
             ->willReturn($roleData);
 
-        $this->assertTrue($this->account->hasRole('admin'));
+        $this->assertTrue($this->account->hasRole(Role::ADMIN));
+        $this->assertTrue($this->account->hasRole(Role::ADMIN->value)); // Test string variant
     }
 
     public function testIsAdmin(): void
     {
         $_SESSION['userId'] = 1;
 
-        $roleData = [ColumnName::NAME => 'admin'];
+        $roleData = [ColumnName::NAME => Role::ADMIN->value];
 
         $this->databaseMock
             ->method('fetch')
@@ -376,13 +380,26 @@ class AccountTest extends TestCase
     {
         $_SESSION['userId'] = 1;
 
-        $roleData = [ColumnName::NAME => 'moderator'];
+        $roleData = [ColumnName::NAME => Role::MODERATOR->value];
 
         $this->databaseMock
             ->method('fetch')
             ->willReturn($roleData);
 
         $this->assertTrue($this->account->isModerator());
+    }
+
+    public function testIsModeratorWithAdminRole(): void
+    {
+        $_SESSION['userId'] = 1;
+
+        $roleData = [ColumnName::NAME => Role::ADMIN->value];
+
+        $this->databaseMock
+            ->method('fetch')
+            ->willReturn($roleData);
+
+        $this->assertTrue($this->account->isModerator()); // Admin sollte auch als Moderator gelten
     }
 
     public function testRequirePermissionThrowsExceptionWhenNotAuthorized(): void
@@ -394,9 +411,9 @@ class AccountTest extends TestCase
             ->willReturn([]);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Access denied. Permission 'users.delete' required.");
+        $this->expectExceptionMessage("Access denied. Permission '" . Permission::USERS_DELETE->value . "' required.");
 
-        $this->account->requirePermission('users.delete');
+        $this->account->requirePermission(Permission::USERS_DELETE);
     }
 
     public function testRequireRoleThrowsExceptionWhenNotAuthorized(): void
@@ -405,19 +422,18 @@ class AccountTest extends TestCase
 
         $this->databaseMock
             ->method('fetch')
-            ->willReturn([ColumnName::NAME => 'user']);
+            ->willReturn([ColumnName::NAME => Role::USER->value]);
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage("Access denied. Role 'admin' required.");
+        $this->expectExceptionMessage("Access denied. Role '" . Role::ADMIN->value . "' required.");
 
-        $this->account->requireRole('admin');
+        $this->account->requireRole(Role::ADMIN);
     }
 
-    public function testAssignRole(): void
+    public function testAssignRoleWithEnum(): void
     {
         $userId = 1;
-        $roleName = 'moderator';
-        $roleData = [ColumnName::ID => 2, ColumnName::NAME => $roleName];
+        $roleData = [ColumnName::ID => 2, ColumnName::NAME => Role::MODERATOR->value];
 
         // Mock getRoleByName
         $this->databaseMock
@@ -425,7 +441,7 @@ class AccountTest extends TestCase
             ->method('fetch')
             ->with(
                 $this->stringContains('SELECT * FROM ' . TableName::ROLE),
-                ['name' => $roleName]
+                ['name' => Role::MODERATOR->value]
             )
             ->willReturn($roleData);
 
@@ -442,9 +458,51 @@ class AccountTest extends TestCase
             )
             ->willReturn(1);
 
-        $result = $this->account->assignRole($userId, $roleName);
+        $result = $this->account->assignRole($userId, Role::MODERATOR);
 
         $this->assertTrue($result);
+    }
+
+    public function testAssignRoleWithString(): void
+    {
+        $userId = 1;
+        $roleData = [ColumnName::ID => 2, ColumnName::NAME => Role::MODERATOR->value];
+
+        // Mock getRoleByName
+        $this->databaseMock
+            ->expects($this->once())
+            ->method('fetch')
+            ->with(
+                $this->stringContains('SELECT * FROM ' . TableName::ROLE),
+                ['name' => Role::MODERATOR->value]
+            )
+            ->willReturn($roleData);
+
+        // Mock update
+        $this->databaseMock
+            ->expects($this->once())
+            ->method('update')
+            ->willReturn(1);
+
+        $result = $this->account->assignRole($userId, Role::MODERATOR->value);
+
+        $this->assertTrue($result);
+    }
+
+    public function testGetRolePermissions(): void
+    {
+        $permissions = [
+            [ColumnName::NAME => Permission::USERS_READ->value],
+            [ColumnName::NAME => Permission::CONTENT_MODERATE->value]
+        ];
+
+        $this->databaseMock
+            ->method('fetchAll')
+            ->willReturn($permissions);
+
+        $result = $this->account->getRolePermissions(Role::MODERATOR);
+
+        $this->assertEquals($permissions, $result);
     }
 
     // =================================================================
@@ -545,18 +603,92 @@ class AccountTest extends TestCase
         $this->account->initializeDefaultRoles();
     }
 
+    public function testCreateDefaultRoles(): void
+    {
+        // Mock dass keine Rollen existieren
+        $this->databaseMock
+            ->method('fetch')
+            ->willReturn(false);
+
+        // Mock für Insert-Operationen - eine für jede Rolle
+        $this->databaseMock
+            ->expects($this->exactly(3)) // admin, moderator, user
+            ->method('insert')
+            ->willReturnOnConsecutiveCalls('1', '2', '3');
+
+        $result = $this->account->createDefaultRoles();
+
+        $this->assertCount(3, $result);
+        $this->assertEquals(Role::ADMIN->value, $result[0][ColumnName::NAME]);
+        $this->assertEquals(Role::MODERATOR->value, $result[1][ColumnName::NAME]);
+        $this->assertEquals(Role::USER->value, $result[2][ColumnName::NAME]);
+    }
+
+    public function testCreateDefaultPermissions(): void
+    {
+        // Mock dass keine Permissions existieren
+        $this->databaseMock
+            ->method('fetch')
+            ->willReturn(false);
+
+        // Mock für Insert-Operationen - eine für jede Permission
+        $expectedPermissionCount = count(Permission::cases());
+        $this->databaseMock
+            ->expects($this->exactly($expectedPermissionCount))
+            ->method('insert')
+            ->willReturn('1');
+
+        $result = $this->account->createDefaultPermissions();
+
+        $this->assertCount($expectedPermissionCount, $result);
+        
+        // Prüfe, dass alle Permission-Enums enthalten sind
+        $createdPermissionNames = array_column($result, ColumnName::NAME);
+        foreach (Permission::cases() as $permission) {
+            $this->assertContains($permission->value, $createdPermissionNames);
+        }
+    }
+
+    public function testValidateRequiredRoles(): void
+    {
+        // Mock dass alle Rollen existieren
+        $this->databaseMock
+            ->method('fetch')
+            ->willReturnCallback(function ($sql, $params) {
+                $roleName = $params['name'];
+                return [ColumnName::ID => 1, ColumnName::NAME => $roleName];
+            });
+
+        $result = $this->account->validateRequiredRoles();
+
+        $this->assertTrue($result);
+    }
+
+    public function testValidateRequiredRolesThrowsExceptionWhenMissing(): void
+    {
+        // Mock dass Rollen nicht existieren
+        $this->databaseMock
+            ->method('fetch')
+            ->willReturn(false);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Required roles missing from database: ' . implode(', ', Role::getAllNames()));
+
+        $this->account->validateRequiredRoles();
+    }
+
     // =================================================================
     // UTILITY TESTS
     // =================================================================
 
     public function testParsePermissionName(): void
     {
-        $result = $this->account->parsePermissionName('users.create');
+        $result = $this->account->parsePermissionName(Permission::USERS_CREATE->value);
 
         $expected = [
             'resource' => 'users',
             'action' => 'create',
-            'full' => 'users.create'
+            'full' => Permission::USERS_CREATE->value
         ];
 
         $this->assertEquals($expected, $result);
@@ -569,8 +701,8 @@ class AccountTest extends TestCase
         $userData = [
             ColumnName::ID => 1,
             ColumnName::EMAIL => 'test@example.com',
-            'role_name' => 'admin',
-            'role_level' => 1
+            'role_name' => Role::ADMIN->value,
+            'role_level' => Role::ADMIN->getLevel()
         ];
 
         $this->databaseMock
@@ -591,6 +723,77 @@ class AccountTest extends TestCase
         $result = $this->account->getCurrentUser();
 
         $this->assertNull($result);
+    }
+
+    // =================================================================
+    // PERMISSION ENUM TESTS
+    // =================================================================
+
+    public function testPermissionEnumMethods(): void
+    {
+        // Test getDescription
+        $this->assertEquals('Create new users', Permission::USERS_CREATE->getDescription());
+        
+        // Test parse
+        $parsed = Permission::USERS_CREATE->parse();
+        $this->assertEquals('users', $parsed['resource']);
+        $this->assertEquals('create', $parsed['action']);
+        $this->assertEquals(Permission::USERS_CREATE->value, $parsed['full']);
+        
+        // Test getByResource
+        $userPermissions = Permission::getByResource('users');
+        $this->assertNotEmpty($userPermissions);
+        $this->assertContains(Permission::USERS_CREATE, $userPermissions);
+        $this->assertContains(Permission::USERS_READ, $userPermissions);
+    }
+
+    // =================================================================
+    // ROLE ENUM TESTS
+    // =================================================================
+
+    public function testRoleEnumMethods(): void
+    {
+        // Test getDescription
+        $this->assertEquals('Full system administrator access', Role::ADMIN->getDescription());
+        
+        // Test getLevel
+        $this->assertEquals(1, Role::ADMIN->getLevel());
+        $this->assertEquals(2, Role::MODERATOR->getLevel());
+        $this->assertEquals(3, Role::USER->getLevel());
+        
+        // Test hasMinimumLevel
+        $this->assertTrue(Role::ADMIN->hasMinimumLevel(1));
+        $this->assertTrue(Role::ADMIN->hasMinimumLevel(2));
+        $this->assertFalse(Role::USER->hasMinimumLevel(1));
+        
+        // Test isModeratorOrHigher
+        $this->assertTrue(Role::ADMIN->isModeratorOrHigher());
+        $this->assertTrue(Role::MODERATOR->isModeratorOrHigher());
+        $this->assertFalse(Role::USER->isModeratorOrHigher());
+        
+        // Test fromName
+        $this->assertEquals(Role::ADMIN, Role::fromName('admin'));
+        $this->assertEquals(Role::ADMIN, Role::fromName('ADMIN'));
+        $this->assertNull(Role::fromName('invalid'));
+    }
+
+    public function testRoleDefaultPermissions(): void
+    {
+        $adminPermissions = Role::ADMIN->getDefaultPermissions();
+        $moderatorPermissions = Role::MODERATOR->getDefaultPermissions();
+        $userPermissions = Role::USER->getDefaultPermissions();
+        
+        // Admin sollte alle Permissions haben
+        $this->assertContains(Permission::USERS_CREATE, $adminPermissions);
+        $this->assertContains(Permission::SETTINGS_UPDATE, $adminPermissions);
+        
+        // Moderator sollte User-Management aber keine System-Settings haben
+        $this->assertContains(Permission::USERS_READ, $moderatorPermissions);
+        $this->assertNotContains(Permission::SETTINGS_UPDATE, $moderatorPermissions);
+        
+        // User sollte nur basic Permissions haben
+        $this->assertContains(Permission::PROFILE_READ, $userPermissions);
+        $this->assertNotContains(Permission::USERS_CREATE, $userPermissions);
     }
 
     // =================================================================
