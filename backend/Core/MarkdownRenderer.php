@@ -1,6 +1,7 @@
 <?php
 
 namespace SquareRouting\Core;
+use Exception;
 
 class MarkdownRenderer
 {

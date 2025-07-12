@@ -6,6 +6,7 @@ namespace SquareRouting\Routes;
 
 use SquareRouting\Controllers\AuthenticationController;
 use SquareRouting\Controllers\CacheExampleController;
+use SquareRouting\Controllers\CliController;
 use SquareRouting\Controllers\ConfigExampleController;
 use SquareRouting\Controllers\DashboardExampleController;
 use SquareRouting\Controllers\DatabaseExampleController;
@@ -64,6 +65,8 @@ class ApplicationRoutes implements RoutableInterface
         $route->post('/post-example', HttpRequestExampleController::class, 'handlePostRequest');
         $route->post('/validate-example-post', ValidatorExampleController::class, 'validateExample');
 
+        $route->post('/api/cli-command', CliController::class, action: 'processCommand');
+        $route->get('/cli-command', CliController::class, action: 'showTerminal');
         // Put Example
         $route->put('/put-example/:id', HttpRequestExampleController::class, 'handlePutRequest', ['id' => 'num']);
 

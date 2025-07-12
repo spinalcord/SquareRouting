@@ -10,6 +10,9 @@ namespace SquareRouting\Core\Schema;
  */
 class TableName
 {
+    const ROLE = 'role';
+    const PERMISSION = 'permission';
+    const ROLE_PERMISSIONS = 'role_permissions';
     const ACCOUNT = 'account';
     const CONFIGURATION = 'configuration';
 }

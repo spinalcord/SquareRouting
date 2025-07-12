@@ -37,7 +37,7 @@ class Request
     // Retrieves the value of a request header
     public function header(string $key): ?string
     {
-        $key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
+        $key = 'HTTP_'.strtoupper(str_replace('-', '_', $key));
 
         return $_SERVER[$key] ?? null; // Use null coalescing, and simplify the logic.
     }
@@ -64,6 +64,18 @@ class Request
     public function isGet(): bool
     {
         return $this->method() === 'GET';
+    }
+
+    public function isRefresh(): bool
+    {
+        // Kombiniert mehrere Indikatoren für eine Aktualisierung
+        $cacheControl = isset($_SERVER['HTTP_CACHE_CONTROL']) &&
+                       $_SERVER['HTTP_CACHE_CONTROL'] === 'max-age=0';
+
+        $pragma = isset($_SERVER['HTTP_PRAGMA']) &&
+                  $_SERVER['HTTP_PRAGMA'] === 'no-cache';
+
+        return $cacheControl || $pragma;
     }
 
     // Retrieves the entire body of the request (useful for PUT, PATCH, etc.)

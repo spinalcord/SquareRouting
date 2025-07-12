@@ -12,6 +12,7 @@ use RuntimeException;
 use SquareRouting\Core\Database\DatabaseDialect;
 use SquareRouting\Core\Database\Table;
 use Throwable;
+use Exception;
 
 class Database
 {

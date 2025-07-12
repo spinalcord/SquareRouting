@@ -7,15 +7,15 @@ class JsonResponsePattern
     public function success(mixed $body = null, string $message = ''): array
     {
         $response = ['success' => true];
-        
+
         if ($body !== null) {
             $response['body'] = $body;
         }
-        
-        if (!empty($message)) {
+
+        if (! empty($message)) {
             $response['message'] = $message;
         }
-        
+
         return $response;
     }
 
@@ -25,14 +25,14 @@ class JsonResponsePattern
             'success' => false,
             'error' => [
                 'code' => $code,
-                'message' => $message
-            ]
+                'message' => $message,
+            ],
         ];
-        
+
         if ($details !== null) {
             $response['error']['details'] = $details;
         }
-        
+
         return $response;
     }
 }

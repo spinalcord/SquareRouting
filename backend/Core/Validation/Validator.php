@@ -102,26 +102,49 @@ final class Validator
     {
         $expandedRules = [];
         foreach ($rules as $fieldPattern => $fieldRules) {
-            if (! str_contains($fieldPattern, '.*')) {
+            if (! str_contains($fieldPattern, '*')) {
                 $expandedRules[$fieldPattern] = $fieldRules;
-
                 continue;
             }
 
-            // Explode the pattern into parts before and after the first wildcard
-            [$prefix, $suffix] = explode('.*.', $fieldPattern, 2);
+            // Handle different wildcard patterns
+            if (str_contains($fieldPattern, '.*.')) {
+                // Pattern like 'items.*.name'
+                $parts = explode('.*.', $fieldPattern, 2);
+                if (count($parts) !== 2) {
+                    // Fallback: add original rule if explode doesn't return 2 parts
+                    $expandedRules[$fieldPattern] = $fieldRules;
+                    continue;
+                }
+                [$prefix, $suffix] = $parts;
+            } elseif (str_ends_with($fieldPattern, '.*')) {
+                // Pattern like 'arguments.*'
+                $prefix = substr($fieldPattern, 0, -2); // Remove '.*'
+                $suffix = '';
+            } else {
+                // Other wildcard patterns - add original rule
+                $expandedRules[$fieldPattern] = $fieldRules;
+                continue;
+            }
+
             $arrayData = $this->getNestedValue($data, $prefix);
 
             if (! is_array($arrayData)) {
                 // If the data at the prefix is not an array, we can't expand.
                 // We'll add the original rule, which will likely fail on a type check.
                 $expandedRules[$fieldPattern] = $fieldRules;
-
                 continue;
             }
 
             foreach (array_keys($arrayData) as $index) {
-                $newFieldPattern = "{$prefix}.{$index}.{$suffix}";
+                if ($suffix === '') {
+                    // For patterns like 'arguments.*'
+                    $newFieldPattern = "{$prefix}.{$index}";
+                } else {
+                    // For patterns like 'items.*.name'
+                    $newFieldPattern = "{$prefix}.{$index}.{$suffix}";
+                }
+                
                 // Recursively expand in case of multiple wildcards
                 $newExpanded = $this->expandRules([$newFieldPattern => $fieldRules], $data);
                 $expandedRules = array_merge($expandedRules, $newExpanded);

@@ -11,6 +11,13 @@ namespace SquareRouting\Core\Schema;
 class ColumnName
 {
     const ID = 'id';
+    const NAME = 'name';
+    const DESCRIPTION = 'description';
+    const LEVEL = 'level';
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'updated_at';
+    const ROLE_ID = 'role_id';
+    const PERMISSION_ID = 'permission_id';
     const EMAIL = 'email';
     const PASSWORD = 'password';
     const USERNAME = 'username';
@@ -21,12 +28,8 @@ class ColumnName
     const RESET_TOKEN_EXPIRES = 'reset_token_expires';
     const REMEMBER_TOKEN = 'remember_token';
     const LAST_LOGIN = 'last_login';
-    const CREATED_AT = 'created_at';
-    const UPDATED_AT = 'updated_at';
-    const NAME = 'name';
     const VALUE = 'value';
     const DEFAULT_VALUE = 'default_value';
     const LABEL = 'label';
-    const DESCRIPTION = 'description';
     const TYPE = 'type';
 }

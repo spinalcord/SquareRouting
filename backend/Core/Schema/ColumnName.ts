@@ -4,6 +4,13 @@
  */
 export enum ColumnName {
   ID = 'id',
+  NAME = 'name',
+  DESCRIPTION = 'description',
+  LEVEL = 'level',
+  CREATED_AT = 'created_at',
+  UPDATED_AT = 'updated_at',
+  ROLE_ID = 'role_id',
+  PERMISSION_ID = 'permission_id',
   EMAIL = 'email',
   PASSWORD = 'password',
   USERNAME = 'username',
@@ -14,12 +21,8 @@ export enum ColumnName {
   RESET_TOKEN_EXPIRES = 'reset_token_expires',
   REMEMBER_TOKEN = 'remember_token',
   LAST_LOGIN = 'last_login',
-  CREATED_AT = 'created_at',
-  UPDATED_AT = 'updated_at',
-  NAME = 'name',
   VALUE = 'value',
   DEFAULT_VALUE = 'default_value',
   LABEL = 'label',
-  DESCRIPTION = 'description',
   TYPE = 'type',
 }

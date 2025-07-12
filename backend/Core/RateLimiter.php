@@ -2,6 +2,8 @@
 
 namespace SquareRouting\Core;
 
+use RuntimeException;
+
 class RateLimiter
 {
     private $dataFile;
@@ -16,6 +18,9 @@ class RateLimiter
     public function __construct($dataFile = 'rate_limits.json')
     {
         $this->dataFile = $dataFile;
+
+        // Automatische Verzeichniserstellung
+        $this->ensureDirectoryExists();
 
         $this->loadData();
     }
@@ -210,6 +215,22 @@ class RateLimiter
         }
 
         return max(0, $this->limits[$key]['maxAttempts'] - $this->data[$key][$clientId]['attempts']);
+    }
+
+    /**
+     * Stellt sicher, dass das Verzeichnis für die Datei existiert
+     */
+    private function ensureDirectoryExists(): void
+    {
+        $directory = dirname($this->dataFile);
+
+        // Prüfen ob das Verzeichnis bereits existiert
+        if (! is_dir($directory)) {
+            // Verzeichnis rekursiv erstellen mit Berechtigung 0755
+            if (! mkdir($directory, 0755, true)) {
+                throw new RuntimeException('Konnte Verzeichnis nicht erstellen: ' . $directory);
+            }
+        }
     }
 
     /**

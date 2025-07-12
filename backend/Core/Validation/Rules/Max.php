@@ -24,6 +24,6 @@ final readonly class Max implements RuleInterface
 
     public function message(string $field): string
     {
-        return "The {$field} must not be greater than {$this->length} characters/items/value.";
+        return "The \"{$field}\" must not be greater than {$this->length} characters/items/value.";
     }
 }

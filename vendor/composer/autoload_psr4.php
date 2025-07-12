@@ -7,4 +7,6 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'SquareRouting\\' => array($baseDir . '/backend'),
+    'PhpParser\\' => array($vendorDir . '/nikic/php-parser/lib/PhpParser'),
+    'DeepCopy\\' => array($vendorDir . '/myclabs/deep-copy/src/DeepCopy'),
 );
