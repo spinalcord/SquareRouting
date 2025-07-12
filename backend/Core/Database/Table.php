@@ -46,7 +46,7 @@ class Table
 
             // Foreign Keys sammeln
             if ($column->hasForeignKey()) {
-                $foreignKeys[] = '  ' . $column->getForeignKey()->toSQL($dialect, $column->getName());
+                $foreignKeys[] = '  ' . $column->getForeignKey()->toSQL($dialect, $column->getName(), $this->tableName);
             }
 
             // SQLite: PRIMARY KEY separat sammeln

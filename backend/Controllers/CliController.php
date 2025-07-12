@@ -10,6 +10,7 @@ use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Schema;
+use SquareRouting\Core\Schema\Permission;
 use SquareRouting\Core\SchemaGenerator;
 use SquareRouting\Core\Response;
 use SquareRouting\Core\Validation\Rules\IsArray;
@@ -34,6 +35,7 @@ class CliController
     public RateLimiter $rateLimiter;
     public Account $account;
     public DependencyContainer $container;
+    public string $routePath;
 
     public function __construct(DependencyContainer $container)
     {
@@ -43,12 +45,12 @@ class CliController
         $this->rateLimiter = $container->get(RateLimiter::class);
         $this->account = $container->get(Account::class);
         $this->container = $container;
-
+        $this->routePath = $container->get("routePath");
     }
 
     public function showTerminal(): Response
     {
-        $output = $this->view->render('cli.tpl');
+        $output = $this->view->render('cli.tpl',['routePath' => $this->routePath]);
 
         return (new Response)->html($output);
     }
@@ -165,7 +167,9 @@ return (new Response)->json((new CLIResponsePattern)->Ordinary('Rate limit excee
         }
 
         if ($commandName == 'permtest') {
-            if($this->account->hasPermission('content.create'))
+
+
+            if($this->account->hasPermission(Permission::CONTENT_CREATE))
             {
     return (new Response)->json((new CLIResponsePattern)->Ordinary("you are allowed to read"));
             }

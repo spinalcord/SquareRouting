@@ -144,7 +144,7 @@
         const output = document.getElementById('output');
         const commandInput = document.getElementById('commandInput');
         const debugOutput = document.getElementById('debugOutput');
-        const API_URL = '/api/cli-command';
+        const API_URL = '{{ $routePath }}';
         let awaitingInput = false;
         let currentCommandId = null;
         let currentCommand = null;

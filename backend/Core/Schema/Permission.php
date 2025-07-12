@@ -6,6 +6,8 @@ namespace SquareRouting\Core\Schema;
 
 enum Permission: string
 {
+    // Cli
+    case CLI_ACCESS = 'cli.access';
     // User management
     case USERS_CREATE = 'users.create';
     case USERS_READ = 'users.read';
@@ -33,6 +35,7 @@ enum Permission: string
     public function getDescription(): string
     {
         return match($this) {
+            self::CLI_ACCESS => 'Access web terminal',
             self::USERS_CREATE => 'Create new users',
             self::USERS_READ => 'View user profiles',
             self::USERS_UPDATE => 'Edit user profiles',

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 namespace SquareRouting\Routes;
-
+use SquareRouting\Core\DotEnv;
 use SquareRouting\Controllers\AuthenticationController;
 use SquareRouting\Controllers\CacheExampleController;
 use SquareRouting\Controllers\CliController;
@@ -32,6 +32,7 @@ class ApplicationRoutes implements RoutableInterface
     public function getRoute(DependencyContainer $container): Route
     {
         $route = new Route($container);
+        $dotEnv = $container->get(DotEnv::class);
 
         // Example how to add a new pattern
         $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
@@ -65,8 +66,12 @@ class ApplicationRoutes implements RoutableInterface
         $route->post('/post-example', HttpRequestExampleController::class, 'handlePostRequest');
         $route->post('/validate-example-post', ValidatorExampleController::class, 'validateExample');
 
-        $route->post('/api/cli-command', CliController::class, action: 'processCommand');
-        $route->get('/cli-command', CliController::class, action: 'showTerminal');
+        if($dotEnv->get("ENABLE_CLI"))
+        {
+            $route->post($dotEnv->get("CLI_ROUTE"), CliController::class, action: 'processCommand');
+            $route->get($dotEnv->get("CLI_ROUTE"), CliController::class, action: 'showTerminal');
+        }
+
         // Put Example
         $route->put('/put-example/:id', HttpRequestExampleController::class, 'handlePutRequest', ['id' => 'num']);
 

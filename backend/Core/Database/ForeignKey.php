@@ -48,9 +48,9 @@ class ForeignKey
         return $this;
     }
 
-    public function toSQL(DatabaseDialect $dialect = DatabaseDialect::MYSQL, string $columnName = ''): string
+    public function toSQL(DatabaseDialect $dialect = DatabaseDialect::MYSQL, string $columnName = '', string $currentTableName = ''): string
     {
-        $constraintName = $this->constraintName ?? "fk_{$columnName}_{$this->referencedTable->getTableName()}_{$this->referencedColumn->getName()}";
+        $constraintName = $this->constraintName ?? "fk_{$currentTableName}_{$columnName}";
 
         if ($dialect === DatabaseDialect::MYSQL) {
             $sql = "CONSTRAINT `{$constraintName}` FOREIGN KEY (`{$columnName}`) ";

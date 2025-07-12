@@ -57,7 +57,15 @@ class Database
                 $this->enableCaching = true;
             }
         } catch (PDOException $e) {
-            throw new RuntimeException('Database connection failed: ' . $e->getMessage(), (int) $e->getCode(), $e);
+            // throw new RuntimeException('Database connection failed: ' . $e->getMessage(), (int) $e->getCode(), $e);
+            echo "<style>h2 {color: red;}</style>";
+            echo "<pre>";
+            echo "<h2>Database connection failed</h2>";
+            echo $e->getMessage() . "\n\n";
+            echo "<b>Troubleshoting: open the `.env` file in the `Config` dir.\n 1. Check `Mysql` credentials\n 2. Or switch to sqlite (DB_CONNECTION=sqlite)</b>";
+            echo "</pre>";
+
+            exit;
         }
     }
 

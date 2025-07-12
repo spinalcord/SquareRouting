@@ -44,9 +44,7 @@ $dotEnv = $container->get(DotEnv::class);
 $container->register(Request::class);
 $request = $container->get(Request::class);
 
-
-
-$container->register(Cache::class, parameters: ['cacheDir' => $container->get('cache_location'), 'defaultTtl' => 3600, 'enabled' => $dotEnv->get('DEVELOPER', true)]);
+$container->register(Cache::class, parameters: ['cacheDir' => $container->get('cache_location'), 'defaultTtl' => 3600, 'enabled' => !$dotEnv->get('DEVELOPER', true)]);
 $cache = $container->get(Cache::class);
 
 $container->register(RateLimiter::class, parameters: ['dataFile' => $container->get('rate_limit_temp_file_location')]);
@@ -55,7 +53,7 @@ $rateLimiter = $container->get(RateLimiter::class);
 // Database connection
 $container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $container->get('sqlite_file_location'), 'cache' => $cache]);
 $db = $container->get(Database::class);
-$db->enableCaching($dotEnv->get('DB_CACHING'));
+$db->enableCaching(!$dotEnv->get('DEVELOPER', true));
 
 // View
 $container->register(View::class, parameters: ['templateDir' => $container->get('template_location'), 'cacheDir' => $container->get('cache_location')]);
@@ -91,8 +89,8 @@ $corsMiddleware->handle($dotEnv->get('ALLOWED_ORIGINS'));
 
 $schema = new Schema;
 
-$db->createTableIfNotExists($schema->account());
 $db->createTableIfNotExists($schema->role());
+$db->createTableIfNotExists($schema->account());
 $db->createTableIfNotExists($schema->permission());
 $db->createTableIfNotExists($schema->role_permissions());
 $db->createTableIfNotExists($schema->configuration());

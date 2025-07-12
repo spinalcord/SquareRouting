@@ -176,6 +176,7 @@ class Route
                 $patternResult = $this->matchPathParameter($route, $requestPath);
                 if ($patternResult) {
                     [$matches, $params] = $patternResult;
+
                     $this->executeRoute($route, $params);
 
                     return true;
@@ -304,6 +305,8 @@ class Route
      */
     private function executeRoute(array $route, array $params): void
     {
+        $this->container->set("routePath", fn() => $_SERVER['REQUEST_URI']);
+
         // //////////////////////////////////////////////
         // 'before' filters
         foreach ($route['filters'] as $filterClass) {
