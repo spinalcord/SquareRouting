@@ -1,0 +1,92 @@
+
+        // Weiteres Beispiel: Einfacher Login-Wizard
+        /* if ($commandName == 'login') { */
+        /*     $wizard = new CommandWizard('login_wizard'); */
+        /**/
+        /*     $wizard */
+        /*         ->addStep('Username:', null, fn ($input) => ['username' => $input]) */
+        /*         ->addStep('Password:', null, function ($input, $data) { */
+        /*             // Hier würdest du normalerweise das Login prüfen */
+        /*             if ($data['username'] === 'admin' && $input === 'secret') { */
+        /*                 return (new StepFeedback)->success('🎉 Login erfolgreich! Willkommen zurück!'); */
+        /*             } else { */
+        /*                 return (new StepFeedback)->error('❌ Login fehlgeschlagen! Benutzername oder Passwort falsch.'); */
+        /*             } */
+        /*         }); */
+        /**/
+        /*     $result = $wizard->process($input, $commandId); */
+        /**/
+        /*     return (new Response)->json($result); */
+        /* } */
+
+        // Beispiel: Wizard mit Queue Steps (automatische Schritte)
+        /* if ($commandName == 'deploy') { */
+        /*     $wizard = new CommandWizard('deploy_wizard'); */
+        /**/
+        /*     $wizard */
+        /*         // Normal Step - wartet auf Input */
+        /*         ->addStep('Projekt-Name für Deployment:', null, fn ($input) => ['project' => $input]) */
+        /**/
+        /*         // Queue Step - automatisch */
+        /*         ->addQueueStep( */
+        /*             function ($data) { */
+        /*                 return "🔄 Lade Konfiguration für {$data['project']}..."; */
+        /*             }, */
+        /*             function ($input, $data) { */
+        /*                 // Hier würde man die Konfiguration laden */
+        /*                 sleep(4); // Simuliere Ladezeit */
+        /**/
+        /*                 return ['config' => 'loaded']; */
+        /*             } */
+        /*         ) */
+        /**/
+        /*         // Normal Step - wartet auf Input */
+        /*         ->addStep( */
+        /*             '✅ Konfiguration geladen! Möchtest du fortfahren? (ja/nein)', */
+        /*             function ($input) { */
+        /*                 if (! in_array(strtolower($input), ['ja', 'nein', 'yes', 'no'])) { */
+        /*                     return (new StepFeedback)->warning("Bitte 'ja' oder 'nein' eingeben:"); */
+        /*                 } */
+        /*                 if (in_array(strtolower($input), ['nein', 'no'])) { */
+        /*                     return (new StepFeedback)->error('Deployment abgebrochen.'); */
+        /*                 } */
+        /**/
+        /*                 return true; */
+        /*             }, */
+        /*             fn ($input) => ['confirmed' => true] */
+        /*         ) */
+        /**/
+        /*         // Queue Step - automatisch */
+        /*         ->addQueueStep( */
+        /*             '🚀 Starte Deployment...', */
+        /*             function ($input, $data) { */
+        /*                 sleep(4); // Simuliere Ladezeit */
+        /**/
+        /*                 // Hier würde das eigentliche Deployment stattfinden */
+        /*                 return (new StepFeedback)->success("🎉 Deployment erfolgreich! Projekt: {$data['project']}"); */
+        /*             } */
+        /*         ); */
+        /**/
+        /*     $result = $wizard->process($input, $commandId); */
+        /**/
+        /*     return (new Response)->json($result); */
+        /* } */
+
+        // Einfacheres Beispiel - auch mit addQueueStep
+        /* if ($commandName == 'test') { */
+        /*     $wizard = new CommandWizard('test_wizard'); */
+        /**/
+        /*     $wizard */
+        /*         ->addStep('Name eingeben:', null, fn ($input) => ['name' => $input])           // Normal */
+        /*         ->addQueueStep('🔄 Verarbeite...', fn () => ['processed' => true])            // Queue */
+        /*         ->addQueueStep(                                                               // Queue + Ende */
+        /*             function ($data) { */
+        /*                 return "✅ Hallo {$data['name']}! Verarbeitung abgeschlossen."; */
+        /*             }, */
+        /*             fn () => (new StepFeedback)->success('Alles erledigt!') */
+        /*         ); */
+        /**/
+        /*     $result = $wizard->process($input, $commandId); */
+        /**/
+        /*     return (new Response)->json($result); */
+        /* } */

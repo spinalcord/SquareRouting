@@ -2,6 +2,9 @@
 
 namespace SquareRouting\Controllers;
 
+use Exception;
+use InvalidArgumentException;
+use RuntimeException;
 use SquareRouting\Core\Account;
 use SquareRouting\Core\CLI\ArgumentInterpreter;
 use SquareRouting\Core\CLI\CLIResponsePattern;
@@ -12,9 +15,8 @@ use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\Response;
-use SquareRouting\Core\Schema;
 use SquareRouting\Core\Schema\Permission;
-use SquareRouting\Core\SchemaGenerator;
+use SquareRouting\Core\Schema\Role;
 use SquareRouting\Core\Validation\Rules\AlphaNumeric;
 use SquareRouting\Core\Validation\Rules\Email;
 use SquareRouting\Core\Validation\Rules\IsArray;
@@ -56,7 +58,8 @@ class CliController
 
     public function showTerminal(): Response
     {
-        $output = $this->view->render('cli.tpl', ['routePath' => $this->routePath]);
+
+        $output = $this->view->render('cli.tpl', ['routePath' => $this->routePath, 'username' => $this->account->isLoggedIn() ? $this->account->getCurrentUsername() : '']);
 
         return (new Response)->html($output);
     }
@@ -152,7 +155,19 @@ class CliController
             return (new Response)->json((new CLIResponsePattern)->Ordinary(implode("\n", $errors)));
         }
 
-        if ($commandName == 'install') {
+        if(!$this->account->hasPermission( Permission::CLI_ACCESS)) {
+            return (new Response)->json((new CLIResponsePattern)->Ordinary('Web-Terminal access denied.'));
+        }
+        if ($commandName == 'version') {
+            return (new Response)->json((new CLIResponsePattern)->Ordinary('
+███████╗ ██████╗    ██████╗  ██████╗ ██╗   ██╗████████╗
+██╔════╝██╔═══██╗   ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝
+███████╗██║   ██║   ██████╔╝██║   ██║██║   ██║   ██║   
+╚════██║██║▄▄ ██║   ██╔══██╗██║   ██║██║   ██║   ██║   
+███████║╚██████╔╝██╗██║  ██║╚██████╔╝╚██████╔╝   ██║██╗
+╚══════╝ ╚══▀▀═╝ ╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝╚═╝
+Web-Terminal Version 1.0'));
+        } elseif ($commandName == 'install') {
             $isInstallationPossible = ! $this->dotEnv->get('SYSTEM_MARKED_AS_INSTALLED');
             if ($isInstallationPossible) {
                 $wizard = new CommandWizard('create_admin_account');
@@ -163,11 +178,11 @@ class CliController
                         function ($input, $data) {
                             $stepValidation = new Validator(['email' => $input], ['email' => [new Email]]);
                             if ($stepValidation->fails()) {
-
                                 $errors = [];
                                 foreach ($stepValidation->errors() as $fieldErrors) {
                                     $errors = array_merge($errors, $fieldErrors);
                                 }
+                                sleep(3);
 
                                 return (new StepFeedback)->warning(implode("\n", $errors));
                             } else {
@@ -228,208 +243,88 @@ class CliController
                             return 'Erstelle Administrator...';
                         },
                         function ($input, $data) {
-                            $this->account->register($data['email'], $data['password'], ['username' => $data['username']] );
-                            $this->account->login($data['email'], $data['password']);
+                            $this->account->register($data['email'], $data['password'], ['username' => $data['username']]);
+                            $this->account->assignRole($this->account->getCurrentUserId(), Role::ADMIN->value);
 
                             return ['config' => 'loaded'];
                         },
 
                         function ($input, $data) {
-                            return (new StepFeedback)->success("✅ Registrierung erfolgreich abgeschlossen! ");
+                            return (new StepFeedback)->success('Registrierung erfolgreich abgeschlossen! Logge dich ein mit login');
                         }
                     );
                 $result = $wizard->process($input, $commandId);
 
                 return (new Response)->json($result);
             }
-        }
-
-        if ($commandName == 'generate') {
-
-            if ($args['enums'] == 'database') {
-                $schema = new Schema;
-                $schemeaGenerator = new SchemaGenerator($schema, outputDir: $this->container->get('schema_enums_location'));
-                $schemeaGenerator->generateTableNames();
-                $schemeaGenerator->generateColumnNames();
-
-                return (new Response)->json((new CLIResponsePattern)->Ordinary('Database enums created successfully'));
+        } elseif ($commandName == 'logout') {
+ $this->account->logout();       
+            return (new Response)->json((new CLIResponsePattern)->SetTerminalLabel('','logged out'));
+        } elseif ($commandName == 'login') {
+            if ($this->account->isLoggedIn()) {
+                return (new Response)->json((new CLIResponsePattern)->Ordinary('you are already logged in.'));
             }
 
-            $this->account->initializeDefaultRoles();
-
-            $this->account->register($args['name'], $args['password'], ['username' => 'test'.uniqid()]);
-            $this->account->login($args['name'], $args['password']);
-
-            return (new Response)->json((new CLIResponsePattern)->Ordinary(''));
-        }
-
-        /* if ($commandName == 'permtest') { */
-        /**/
-        /*     if ($this->account->hasPermission(Permission::CONTENT_CREATE)) { */
-        /*         return (new Response)->json((new CLIResponsePattern)->Ordinary('you are allowed to read')); */
-        /*     } else { */
-        /*         return (new Response)->json((new CLIResponsePattern)->Ordinary('you are not allowed to read')); */
-        /*     } */
-        /* } */
-
-        if ($commandName == 'version') {
-            return (new Response)->json((new CLIResponsePattern)->Ordinary('
-███████╗ ██████╗    ██████╗  ██████╗ ██╗   ██╗████████╗
-██╔════╝██╔═══██╗   ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝
-███████╗██║   ██║   ██████╔╝██║   ██║██║   ██║   ██║   
-╚════██║██║▄▄ ██║   ██╔══██╗██║   ██║██║   ██║   ██║   
-███████║╚██████╔╝██╗██║  ██║╚██████╔╝╚██████╔╝   ██║██╗
-╚══════╝ ╚══▀▀═╝ ╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝╚═╝
-Web-Terminal Version 1.0'));
-        }
-
-        if ($commandName == 'register') {
-            $wizard = new CommandWizard('register_wizard');
-
+            $wizard = new CommandWizard('user_login');
             $wizard
                 ->addStep(
-                    'Wie ist dein Name?',
-                    // Validator mit verschiedenen outputTypes
+                    'Enter your email:',
+                    // Validator
                     function ($input, $data) {
-                        $name = strtolower(trim($input));
-                        if ($name === 'admin') {
-                            return (new StepFeedback)->error('Admin-Namen sind nicht erlaubt. Registrierung abgebrochen.');
-                        }
-                        if ($name === 'foobar') {
-                            return (new StepFeedback)->warning("Der Name 'foobar' ist nicht erlaubt. Bitte gib einen anderen Namen ein:");
-                        }
-                        if (strlen($name) < 2) {
-                            return (new StepFeedback)->warning('Name muss mindestens 2 Zeichen lang sein:');
-                        }
+                        $stepValidation = new Validator(['email' => $input], ['email' => [new Email]]);
+                        if ($stepValidation->fails()) {
+                            $errors = [];
+                            foreach ($stepValidation->errors() as $fieldErrors) {
+                                $errors = array_merge($errors, $fieldErrors);
+                            }
 
-                        return true;
+                            return (new StepFeedback)->warning(implode("\n", $errors));
+                        } else {
+                            return true;
+                        }
                     },
                     // Processor
                     function ($input, $data) {
-                        return ['name' => trim($input)];
+                        return ['email' => trim($input)];
                     }
                 )
                 ->addStep(
-                    // Dynamische Frage basierend auf vorherigen Daten
-                    function ($data) {
-                        $name = $data['name'] ?? '';
-
-                        return "Hallo {$name}! Wie ist deine E-Mail-Adresse?";
-                    },
-                    // Email Validator
+                    'Enter your password:',
+                    // Validator
                     function ($input, $data) {
-                        if (! filter_var($input, FILTER_VALIDATE_EMAIL)) {
-                            return (new StepFeedback)->warning('Bitte gib eine gültige E-Mail-Adresse ein:');
+                        $stepValidation = new Validator(['password' => $input], ['password' => [new Required, new IsString, new Min(1)]]);
+                        if ($stepValidation->fails()) {
+                            $errors = [];
+                            foreach ($stepValidation->errors() as $fieldErrors) {
+                                $errors = array_merge($errors, $fieldErrors);
+                            }
+
+                            return (new StepFeedback)->warning(implode("\n", $errors));
+                        } else {
+                            return true;
                         }
-
-                        return true;
                     },
-                    // Email Processor - terminiert den Wizard
+                    // Processor
                     function ($input, $data) {
-                        $name = $data['name'];
-                        $email = $input;
-
-                        // Hier kannst du die Registrierung durchführen
-                        // z.B. in Datenbank speichern
-                        return (new StepFeedback)->success("✅ Registrierung erfolgreich abgeschlossen! Name: {$name}, E-Mail: {$email}");
+                        return ['password' => trim($input)];
                     }
                 )
-                ->addStep(
-                    // Dynamische Frage basierend auf vorherigen Daten
-                    function ($data) {
-                        $name = $data['name'] ?? 'dort';
-
-                        return "Hallo {$name}! Wie ist deine E-Mail-Adresse?";
-                    },
-                    // Email Validator
-                    function ($input, $data) {
-                        if (! filter_var($input, FILTER_VALIDATE_EMAIL)) {
-                            return (new StepFeedback)->warning('Bitte gib eine gültige E-Mail-Adresse ein:');
-                        }
-
-                        return true;
-                    },
-                    // Email Processor - terminiert den Wizard
-                    function ($input, $data) {
-                        $name = $data['name'];
-                        $email = $input;
-
-                        // Hier kannst du die Registrierung durchführen
-                        // z.B. in Datenbank speichern
-                        return (new StepFeedback)->success("✅ Registrierung erfolgreich abgeschlossen! Name: {$name}, E-Mail: {$email}");
-                    }
-                );
-
-            $result = $wizard->process($input, $commandId);
-
-            return (new Response)->json($result);
-        }
-
-        // Weiteres Beispiel: Einfacher Login-Wizard
-        if ($commandName == 'login') {
-            $wizard = new CommandWizard('login_wizard');
-
-            $wizard
-                ->addStep('Username:', null, fn ($input) => ['username' => $input])
-                ->addStep('Password:', null, function ($input, $data) {
-                    // Hier würdest du normalerweise das Login prüfen
-                    if ($data['username'] === 'admin' && $input === 'secret') {
-                        return (new StepFeedback)->success('🎉 Login erfolgreich! Willkommen zurück!');
-                    } else {
-                        return (new StepFeedback)->error('❌ Login fehlgeschlagen! Benutzername oder Passwort falsch.');
-                    }
-                });
-
-            $result = $wizard->process($input, $commandId);
-
-            return (new Response)->json($result);
-        }
-
-        // Beispiel: Wizard mit Queue Steps (automatische Schritte)
-        if ($commandName == 'deploy') {
-            $wizard = new CommandWizard('deploy_wizard');
-
-            $wizard
-                // Normal Step - wartet auf Input
-                ->addStep('Projekt-Name für Deployment:', null, fn ($input) => ['project' => $input])
-
-                // Queue Step - automatisch
                 ->addQueueStep(
                     function ($data) {
-                        return "🔄 Lade Konfiguration für {$data['project']}...";
+                        return 'Logging in...';
                     },
                     function ($input, $data) {
-                        // Hier würde man die Konfiguration laden
-                        sleep(4); // Simuliere Ladezeit
+                        try {
+                            $this->account->login($data['email'], $data['password']);
 
-                        return ['config' => 'loaded'];
-                    }
-                )
-
-                // Normal Step - wartet auf Input
-                ->addStep(
-                    '✅ Konfiguration geladen! Möchtest du fortfahren? (ja/nein)',
-                    function ($input) {
-                        if (! in_array(strtolower($input), ['ja', 'nein', 'yes', 'no'])) {
-                            return (new StepFeedback)->warning("Bitte 'ja' oder 'nein' eingeben:");
+                            return ['terminate' => true, 'label' => $this->account->getCurrentUsername(), 'message' => 'Login successful! Welcome back.', 'type' => 'success'];
+                        } catch (InvalidArgumentException $e) {
+                            return ['terminate' => true, 'message' => $e->getMessage(), 'type' => 'error'];
+                        } catch (RuntimeException $e) {
+                            return ['terminate' => true, 'message' => $e->getMessage(), 'type' => 'error'];
+                        } catch (Exception $e) {
+                            return ['terminate' => true, 'message' => 'An unexpected error occurred during login.', 'type' => 'error'];
                         }
-                        if (in_array(strtolower($input), ['nein', 'no'])) {
-                            return (new StepFeedback)->error('Deployment abgebrochen.');
-                        }
-
-                        return true;
-                    },
-                    fn ($input) => ['confirmed' => true]
-                )
-
-                // Queue Step - automatisch
-                ->addQueueStep(
-                    '🚀 Starte Deployment...',
-                    function ($input, $data) {
-                        sleep(4); // Simuliere Ladezeit
-
-                        // Hier würde das eigentliche Deployment stattfinden
-                        return (new StepFeedback)->success("🎉 Deployment erfolgreich! Projekt: {$data['project']}");
                     }
                 );
 
@@ -437,30 +332,13 @@ Web-Terminal Version 1.0'));
 
             return (new Response)->json($result);
         }
-
-        // Einfacheres Beispiel - auch mit addQueueStep
-        if ($commandName == 'test') {
-            $wizard = new CommandWizard('test_wizard');
-
-            $wizard
-                ->addStep('Name eingeben:', null, fn ($input) => ['name' => $input])           // Normal
-                ->addQueueStep('🔄 Verarbeite...', fn () => ['processed' => true])            // Queue
-                ->addQueueStep(                                                               // Queue + Ende
-                    function ($data) {
-                        return "✅ Hallo {$data['name']}! Verarbeitung abgeschlossen.";
-                    },
-                    fn () => (new StepFeedback)->success('Alles erledigt!')
-                );
-
-            $result = $wizard->process($input, $commandId);
-
-            return (new Response)->json($result);
-        }
+        // $this->account->login(email, password);
 
         return (new Response)->json([
             'output' => 'Unknown command: '.$commandName,
             'commandComplete' => true,
             'expectInput' => false,
         ]);
+
     }
 }

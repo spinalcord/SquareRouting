@@ -150,7 +150,11 @@ class Account
 
         return $this->getUserWithRole($userId);
     }
-
+    public function getCurrentUsername(): ?string
+    {
+        $user = $this->getCurrentUser();
+        return $user ? $user[ColumnName::USERNAME] ?? null : null;
+    }
     // =================================================================
     // ROLE & PERMISSION METHODS
     // =================================================================
@@ -889,7 +893,7 @@ class Account
         return $user ?: null;
     }
 
-    private function getCurrentUserId(): ?int
+    public  function getCurrentUserId(): ?int
     {
         return $_SESSION[$this->sessionKey] ?? null;
     }

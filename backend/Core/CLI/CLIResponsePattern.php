@@ -22,4 +22,14 @@ class CLIResponsePattern
             // 'queue' => $queue,
         ];
     }
+    public function SetTerminalLabel(string $labelText, string $output = ''): array
+    {
+        return [
+          'label' => $labelText,
+            'output' => $output,
+            'commandComplete' => true,
+            'expectInput' => false,
+            // 'queue' => $queue,
+        ];
+    }
 }
