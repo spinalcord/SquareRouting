@@ -112,3 +112,21 @@ if ($routeCollector->dispatch() == false) {
         readfile('index.html');
     } // else: route/api call
 }
+
+
+// Funktion zum Speichern der Session in eine JSON-Datei
+function saveSessionToJson($filename) {
+    // Session-Daten in ein Array umwandeln
+    $sessionData = $_SESSION;
+
+    // Array in JSON umwandeln
+    $jsonData = json_encode($sessionData, JSON_PRETTY_PRINT);
+
+    // JSON in die Datei schreiben
+    if (file_put_contents($filename, $jsonData) === false) {
+    } else {
+    }
+}
+
+// JSON-Datei speichern
+saveSessionToJson('session_data.json');

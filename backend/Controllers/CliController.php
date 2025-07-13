@@ -2,28 +2,30 @@
 
 namespace SquareRouting\Controllers;
 
+use SquareRouting\Core\Account;
 use SquareRouting\Core\CLI\ArgumentInterpreter;
 use SquareRouting\Core\CLI\CLIResponsePattern;
 use SquareRouting\Core\CLI\CommandWizard;
 use SquareRouting\Core\CLI\StepFeedback;
 use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\DotEnv;
+use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Request;
+use SquareRouting\Core\Response;
 use SquareRouting\Core\Schema;
 use SquareRouting\Core\Schema\Permission;
 use SquareRouting\Core\SchemaGenerator;
-use SquareRouting\Core\Response;
+use SquareRouting\Core\Validation\Rules\AlphaNumeric;
+use SquareRouting\Core\Validation\Rules\Email;
 use SquareRouting\Core\Validation\Rules\IsArray;
-use SquareRouting\Core\Validation\Rules\Json;
-use SquareRouting\Core\Validation\Rules\Min;
-use SquareRouting\Core\Validation\Rules\Max;
-use SquareRouting\Core\Validation\Rules\Required;
-use SquareRouting\Core\Validation\Rules\IsString;
 use SquareRouting\Core\Validation\Rules\IsBoolean;
+use SquareRouting\Core\Validation\Rules\IsString;
+use SquareRouting\Core\Validation\Rules\Max;
+use SquareRouting\Core\Validation\Rules\Min;
+use SquareRouting\Core\Validation\Rules\Password;
+use SquareRouting\Core\Validation\Rules\Required;
 use SquareRouting\Core\Validation\Validator;
 use SquareRouting\Core\View;
-use SquareRouting\Core\RateLimiter;
-use SquareRouting\Core\Account;
 
 class CliController
 {
@@ -32,9 +34,13 @@ class CliController
     public DotEnv $dotEnv;
 
     private Request $request;
+
     public RateLimiter $rateLimiter;
+
     public Account $account;
+
     public DependencyContainer $container;
+
     public string $routePath;
 
     public function __construct(DependencyContainer $container)
@@ -45,12 +51,12 @@ class CliController
         $this->rateLimiter = $container->get(RateLimiter::class);
         $this->account = $container->get(Account::class);
         $this->container = $container;
-        $this->routePath = $container->get("routePath");
+        $this->routePath = $container->get('routePath');
     }
 
     public function showTerminal(): Response
     {
-        $output = $this->view->render('cli.tpl',['routePath' => $this->routePath]);
+        $output = $this->view->render('cli.tpl', ['routePath' => $this->routePath]);
 
         return (new Response)->html($output);
     }
@@ -65,71 +71,9 @@ class CliController
         $interrupt = $commandStructure['interrupt'] ?? false;
 
         $clientId = $this->request->getClientIp(); // Get client IP address
-        $key = 'cli'; 
+        $key = 'cli';
 
-        $this->rateLimiter->setLimit($key, 6, 30); // 5 attempts per 60 seconds
-
-        if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
-            CommandWizard::cleanupAllSessions();
-
-            $remainingTime = $this->rateLimiter->getRemainingTimeToReset($key, $clientId);
-return (new Response)->json((new CLIResponsePattern)->Ordinary('Rate limit exceeded. Try again in ' . $remainingTime . ' seconds.'));
-        }
-        else
-        {
-         $this->rateLimiter->registerAttempt($key, $clientId);
-        }
-
-        $rules = [
-            // Command ist erforderlich und muss bestimmte Kriterien erfüllen
-            'command' => [
-                new Required, 
-                new IsString, 
-                new Min(2), 
-                new Max(50) // Verhindere übermäßig lange Commands
-            ],
-            
-            // Arguments muss ein Array sein (kann leer sein)
-            'arguments' => [
-                new IsArray
-            ],
-            
-            // Input ist optional aber muss String sein wenn vorhanden
-            'input' => [
-                new IsString
-            ],
-            
-            // CommandId muss vorhanden sein und bestimmte Kriterien erfüllen
-            'commandId' => [
-                new IsString,
-                new Min(1),
-                new Max(100) // Verhindere übermäßig lange IDs
-            ],
-            
-            // Interrupt muss boolean sein wenn vorhanden
-            'interrupt' => [
-                new IsBoolean
-            ],
-            
-            // Zusätzliche Validierung für arguments Array-Elemente
-            'arguments.*' => [
-                new Max(10) // Verhindere übermäßig lange Argumente
-            ]
-        ];
-
-        $validator = new Validator($commandStructure, $rules);
-
-        if ($validator->fails()) {
-            // Fehler extrahieren und in einen flachen Array umwandeln
-            $errors = [];
-            foreach ($validator->errors() as $fieldErrors) {
-                $errors = array_merge($errors, $fieldErrors);
-            }
-            
-            // Fehler in einen String umwandeln
-            return (new Response)->json((new CLIResponsePattern)->Ordinary(implode("\n", $errors)));
-        }
-
+        // Interrupt: ^C oder page refresh -> clean everything
         if ($interrupt || $this->request->isRefresh() || $this->request->isGet()) {
             CommandWizard::cleanupAllSessions();
 
@@ -141,53 +85,202 @@ return (new Response)->json((new CLIResponsePattern)->Ordinary('Rate limit excee
             ]);
         }
 
+        $this->rateLimiter->setLimit($key, 12, 30); // 5 attempts per 60 seconds
+
+        if ($this->rateLimiter->isLimitExceeded($key, $clientId)) {
+
+            $remainingTime = $this->rateLimiter->getRemainingTimeToReset($key, $clientId) + 2;
+
+            return (new Response)->json(
+                [
+                    'rateLimitExceeded' => true,
+                    'remainingTime' => $remainingTime,
+                    'output' => 'Rate limit exceeded. Try again in '.$remainingTime.' seconds.',
+                ]);
+
+        } else {
+            $this->rateLimiter->registerAttempt($key, $clientId);
+        }
+
+        $rules = [
+            // Command ist erforderlich und muss bestimmte Kriterien erfüllen
+            'command' => [
+                new Required,
+                new IsString,
+                new Min(2),
+                new Max(50), // Verhindere übermäßig lange Commands
+            ],
+
+            // Arguments muss ein Array sein (kann leer sein)
+            'arguments' => [
+                new IsArray,
+            ],
+
+            // Input ist optional aber muss String sein wenn vorhanden
+            'input' => [
+                new IsString,
+            ],
+
+            // CommandId muss vorhanden sein und bestimmte Kriterien erfüllen
+            'commandId' => [
+                new IsString,
+                new Min(1),
+                new Max(100), // Verhindere übermäßig lange IDs
+            ],
+
+            // Interrupt muss boolean sein wenn vorhanden
+            'interrupt' => [
+                new IsBoolean,
+            ],
+
+            // Zusätzliche Validierung für arguments Array-Elemente
+            'arguments.*' => [
+                new Max(10), // Verhindere übermäßig lange Argumente
+            ],
+        ];
+
+        $validator = new Validator($commandStructure, $rules);
+
+        if ($validator->fails()) {
+            // Fehler extrahieren und in einen flachen Array umwandeln
+            $errors = [];
+            foreach ($validator->errors() as $fieldErrors) {
+                $errors = array_merge($errors, $fieldErrors);
+            }
+
+            // Fehler in einen String umwandeln
+            return (new Response)->json((new CLIResponsePattern)->Ordinary(implode("\n", $errors)));
+        }
+
+        if ($commandName == 'install') {
+            $isInstallationPossible = ! $this->dotEnv->get('SYSTEM_MARKED_AS_INSTALLED');
+            if ($isInstallationPossible) {
+                $wizard = new CommandWizard('create_admin_account');
+                $wizard
+                    ->addStep(
+                        'Enter your emailaddress:',
+                        // Validator mit verschiedenen outputTypes
+                        function ($input, $data) {
+                            $stepValidation = new Validator(['email' => $input], ['email' => [new Email]]);
+                            if ($stepValidation->fails()) {
+
+                                $errors = [];
+                                foreach ($stepValidation->errors() as $fieldErrors) {
+                                    $errors = array_merge($errors, $fieldErrors);
+                                }
+
+                                return (new StepFeedback)->warning(implode("\n", $errors));
+                            } else {
+                                return true;
+                            }
+                        },
+                        // Processor
+                        function ($input, $data) {
+                            return ['email' => trim($input)];
+                        }
+                    )
+                    ->addStep(
+                        // Dynamische Frage basierend auf vorherigen Daten
+                        'Enter your username:',
+                        function ($input, $data) {
+                            $stepValidation = new Validator(['username' => $input], ['username' => [new AlphaNumeric, new Min(2), new Max(30)]]);
+                            if ($stepValidation->fails()) {
+
+                                $errors = [];
+                                foreach ($stepValidation->errors() as $fieldErrors) {
+                                    $errors = array_merge($errors, $fieldErrors);
+                                }
+
+                                return (new StepFeedback)->warning(implode("\n", $errors));
+                            } else {
+                                return true;
+                            }
+                        },
+                        // Email Processor - terminiert den Wizard
+                        function ($input, $data) {
+                            return ['username' => trim($input)];
+                        }
+                    )
+                    ->addStep(
+                        // Dynamische Frage basierend auf vorherigen Daten
+                        'Enter your password:',
+                        function ($input, $data) {
+                            $stepValidation = new Validator(['password' => $input], ['password' => [new Password]]);
+                            if ($stepValidation->fails()) {
+
+                                $errors = [];
+                                foreach ($stepValidation->errors() as $fieldErrors) {
+                                    $errors = array_merge($errors, $fieldErrors);
+                                }
+
+                                return (new StepFeedback)->warning(implode("\n", $errors));
+                            } else {
+                                return true;
+                            }
+                        },
+                        // Email Processor - terminiert den Wizard
+                        function ($input, $data) {
+                            return ['password' => trim($input)];
+                        }
+                    )
+                    ->addQueueStep(
+                        function ($data) {
+                            return 'Erstelle Administrator...';
+                        },
+                        function ($input, $data) {
+                            $this->account->register($data['email'], $data['password'], ['username' => $data['username']] );
+                            $this->account->login($data['email'], $data['password']);
+
+                            return ['config' => 'loaded'];
+                        },
+
+                        function ($input, $data) {
+                            return (new StepFeedback)->success("✅ Registrierung erfolgreich abgeschlossen! ");
+                        }
+                    );
+                $result = $wizard->process($input, $commandId);
+
+                return (new Response)->json($result);
+            }
+        }
+
         if ($commandName == 'generate') {
 
-            if($args["enums"] == "database")
-            {
-                $schema = new Schema();
+            if ($args['enums'] == 'database') {
+                $schema = new Schema;
                 $schemeaGenerator = new SchemaGenerator($schema, outputDir: $this->container->get('schema_enums_location'));
                 $schemeaGenerator->generateTableNames();
                 $schemeaGenerator->generateColumnNames();
-                return (new Response)->json((new CLIResponsePattern)->Ordinary("Database enums created successfully"));
+
+                return (new Response)->json((new CLIResponsePattern)->Ordinary('Database enums created successfully'));
             }
 
             $this->account->initializeDefaultRoles();
-            
-            $this->account->register($args['name'], $args['password'], ['username' => 'test' . uniqid()]);
+
+            $this->account->register($args['name'], $args['password'], ['username' => 'test'.uniqid()]);
             $this->account->login($args['name'], $args['password']);
-          return (new Response)->json((new CLIResponsePattern)->Ordinary(""));
-        }
-        if ($commandName == 'register') {
-            $this->account->initializeDefaultRoles();
-            
-            $this->account->register($args['name'], $args['password'], ['username' => 'test' . uniqid()]);
-            $this->account->login($args['name'], $args['password']);
-          return (new Response)->json((new CLIResponsePattern)->Ordinary(""));
+
+            return (new Response)->json((new CLIResponsePattern)->Ordinary(''));
         }
 
-        if ($commandName == 'permtest') {
-
-
-            if($this->account->hasPermission(Permission::CONTENT_CREATE))
-            {
-    return (new Response)->json((new CLIResponsePattern)->Ordinary("you are allowed to read"));
-            }
-            else
-            {
-                return (new Response)->json((new CLIResponsePattern)->Ordinary("you are not allowed to read"));
-            }
-        }
+        /* if ($commandName == 'permtest') { */
+        /**/
+        /*     if ($this->account->hasPermission(Permission::CONTENT_CREATE)) { */
+        /*         return (new Response)->json((new CLIResponsePattern)->Ordinary('you are allowed to read')); */
+        /*     } else { */
+        /*         return (new Response)->json((new CLIResponsePattern)->Ordinary('you are not allowed to read')); */
+        /*     } */
+        /* } */
 
         if ($commandName == 'version') {
-          return (new Response)->json((new CLIResponsePattern)->Ordinary("
+            return (new Response)->json((new CLIResponsePattern)->Ordinary('
 ███████╗ ██████╗    ██████╗  ██████╗ ██╗   ██╗████████╗
 ██╔════╝██╔═══██╗   ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝
 ███████╗██║   ██║   ██████╔╝██║   ██║██║   ██║   ██║   
 ╚════██║██║▄▄ ██║   ██╔══██╗██║   ██║██║   ██║   ██║   
 ███████║╚██████╔╝██╗██║  ██║╚██████╔╝╚██████╔╝   ██║██╗
 ╚══════╝ ╚══▀▀═╝ ╚═╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝╚═╝
-Web-Terminal Version 1.0"));
+Web-Terminal Version 1.0'));
         }
 
         if ($commandName == 'register') {
@@ -206,7 +299,7 @@ Web-Terminal Version 1.0"));
                             return (new StepFeedback)->warning("Der Name 'foobar' ist nicht erlaubt. Bitte gib einen anderen Namen ein:");
                         }
                         if (strlen($name) < 2) {
-                            return (new StepFeedback)->warning("Name muss mindestens 2 Zeichen lang sein:");
+                            return (new StepFeedback)->warning('Name muss mindestens 2 Zeichen lang sein:');
                         }
 
                         return true;
@@ -219,6 +312,31 @@ Web-Terminal Version 1.0"));
                 ->addStep(
                     // Dynamische Frage basierend auf vorherigen Daten
                     function ($data) {
+                        $name = $data['name'] ?? '';
+
+                        return "Hallo {$name}! Wie ist deine E-Mail-Adresse?";
+                    },
+                    // Email Validator
+                    function ($input, $data) {
+                        if (! filter_var($input, FILTER_VALIDATE_EMAIL)) {
+                            return (new StepFeedback)->warning('Bitte gib eine gültige E-Mail-Adresse ein:');
+                        }
+
+                        return true;
+                    },
+                    // Email Processor - terminiert den Wizard
+                    function ($input, $data) {
+                        $name = $data['name'];
+                        $email = $input;
+
+                        // Hier kannst du die Registrierung durchführen
+                        // z.B. in Datenbank speichern
+                        return (new StepFeedback)->success("✅ Registrierung erfolgreich abgeschlossen! Name: {$name}, E-Mail: {$email}");
+                    }
+                )
+                ->addStep(
+                    // Dynamische Frage basierend auf vorherigen Daten
+                    function ($data) {
                         $name = $data['name'] ?? 'dort';
 
                         return "Hallo {$name}! Wie ist deine E-Mail-Adresse?";
@@ -226,7 +344,7 @@ Web-Terminal Version 1.0"));
                     // Email Validator
                     function ($input, $data) {
                         if (! filter_var($input, FILTER_VALIDATE_EMAIL)) {
-                            return (new StepFeedback)->warning("Bitte gib eine gültige E-Mail-Adresse ein:");
+                            return (new StepFeedback)->warning('Bitte gib eine gültige E-Mail-Adresse ein:');
                         }
 
                         return true;
@@ -296,7 +414,7 @@ Web-Terminal Version 1.0"));
                             return (new StepFeedback)->warning("Bitte 'ja' oder 'nein' eingeben:");
                         }
                         if (in_array(strtolower($input), ['nein', 'no'])) {
-                            return (new StepFeedback)->info('Deployment abgebrochen.');
+                            return (new StepFeedback)->error('Deployment abgebrochen.');
                         }
 
                         return true;

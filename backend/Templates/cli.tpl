@@ -253,6 +253,83 @@
             document.querySelector('.terminal').scrollTop = document.querySelector('.terminal').scrollHeight;
         }
 
+        function handleResponse(result, sessionId) {
+            // Response nur verarbeiten wenn noch erwartet UND Session ID noch aktuell ist
+            if (!expectingResponse || currentSessionId !== sessionId) return;
+            
+            // Spinner stoppen
+            stopSpinner();
+            
+            // Rate Limit Check
+            if (result.rateLimitExceeded) {
+                // Rate Limit Nachricht anzeigen
+                if (result.output) {
+                    addToOutput(result.output, result.outputType || 'warning');
+                }
+                
+                // Warten und dann fortfahren
+                const waitTime = (result.remainingTime || 1) * 1000;
+                setTimeout(() => {
+                    // Prüfen ob Session noch aktiv ist
+                    if (currentSessionId === sessionId && expectingResponse) {
+                        if (isQueued) {
+                            // Im Queue-Modus: Spinner wieder starten und weiter machen
+                            startSpinner();
+                            sendQueuedRequest();
+                        } else if (awaitingInput) {
+                            // Im Input-Modus: Benutzer kann selbst erneut versuchen
+                            // Nichts weiter zu tun
+                        }
+                    }
+                }, waitTime);
+                return;
+            }
+            
+            // CommandId aktualisieren falls neue gesendet wird
+            if (result.commandId) {
+                currentCommandId = result.commandId;
+            }
+            
+            // Ausgabe anzeigen
+            if (result.output) {
+                addToOutput(result.output, result.outputType);
+            }
+            
+            // Prüfen ob weitere Eingabe erwartet wird oder queue aktiv ist
+            if (result.queue) {
+                // Queue hat Priorität - Eingabe wird deaktiviert
+                isQueued = true;
+                awaitingInput = false;
+                updatePrompt();
+                startSpinner();
+                // Sofort nächste Anfrage senden
+                setTimeout(() => sendQueuedRequest(), 100);
+            } else if (result.expectInput) {
+                awaitingInput = true;
+                isQueued = false;
+                updatePrompt();
+            } else if (result.commandComplete) {
+                awaitingInput = false;
+                isQueued = false;
+                expectingResponse = false;
+                currentSessionId = null;
+                updatePrompt();
+            }
+        }
+
+        function handleError(error, sessionId) {
+            // Fehler nur verarbeiten wenn Session ID noch aktuell ist
+            if (!expectingResponse || currentSessionId !== sessionId) return;
+            
+            stopSpinner();
+            addToOutput('Error: ' + error.message);
+            awaitingInput = false;
+            isQueued = false;
+            expectingResponse = false;
+            currentSessionId = null;
+            updatePrompt();
+        }
+
         async function sendQueuedRequest() {
             if (!expectingResponse) return; // Keine Anfrage wenn keine Response erwartet wird
             
@@ -282,54 +359,10 @@
                 const result = await response.json();
                 addDebug(result, 'received');
                 
-                // Response nur verarbeiten wenn noch erwartet UND Session ID noch aktuell ist
-                if (!expectingResponse || currentSessionId !== sessionId) return;
-                
-                // Spinner stoppen
-                stopSpinner();
-                
-                // CommandId aktualisieren falls neue gesendet wird
-                if (result.commandId) {
-                    currentCommandId = result.commandId;
-                }
-                
-                // Ausgabe anzeigen
-                if (result.output) {
-                    addToOutput(result.output, result.outputType);
-                }
-                
-                // Prüfen ob weitere Eingabe erwartet wird oder queue aktiv ist
-                if (result.queue) {
-                    // Queue hat Priorität - Eingabe wird deaktiviert
-                    isQueued = true;
-                    awaitingInput = false;
-                    updatePrompt();
-                    startSpinner();
-                    // Sofort nächste Anfrage senden
-                    setTimeout(() => sendQueuedRequest(), 100);
-                } else if (result.expectInput) {
-                    awaitingInput = true;
-                    isQueued = false;
-                    updatePrompt();
-                } else if (result.commandComplete) {
-                    awaitingInput = false;
-                    isQueued = false;
-                    expectingResponse = false;
-                    currentSessionId = null;
-                    updatePrompt();
-                }
+                handleResponse(result, sessionId);
                 
             } catch (error) {
-                // Fehler nur verarbeiten wenn Session ID noch aktuell ist
-                if (!expectingResponse || currentSessionId !== sessionId) return;
-                
-                stopSpinner();
-                addToOutput('Error: ' + error.message);
-                awaitingInput = false;
-                isQueued = false;
-                expectingResponse = false;
-                currentSessionId = null;
-                updatePrompt();
+                handleError(error, sessionId);
             }
         }
 
@@ -365,50 +398,10 @@
                 const result = await response.json();
                 addDebug(result, 'received');
                 
-                // Response nur verarbeiten wenn noch erwartet UND Session ID noch aktuell ist
-                if (!expectingResponse || currentSessionId !== sessionId) return;
-                
-                // CommandId speichern
-                if (result.commandId) {
-                    currentCommandId = result.commandId;
-                }
-                
-                // Ausgabe anzeigen
-                if (result.output) {
-                    addToOutput(result.output, result.outputType);
-                }
-                
-                // Prüfen ob eine Frage erwartet wird oder queue aktiv ist
-                if (result.queue) {
-                    // Queue hat Priorität - Eingabe wird deaktiviert
-                    isQueued = true;
-                    awaitingInput = false;
-                    updatePrompt();
-                    startSpinner();
-                    // Sofort nächste Anfrage senden
-                    setTimeout(() => sendQueuedRequest(), 100);
-                } else if (result.expectInput) {
-                    awaitingInput = true;
-                    isQueued = false;
-                    updatePrompt();
-                } else if (result.commandComplete) {
-                    awaitingInput = false;
-                    isQueued = false;
-                    expectingResponse = false;
-                    currentSessionId = null;
-                    updatePrompt();
-                }
+                handleResponse(result, sessionId);
                 
             } catch (error) {
-                // Fehler nur verarbeiten wenn Session ID noch aktuell ist
-                if (!expectingResponse || currentSessionId !== sessionId) return;
-                
-                addToOutput('Error: ' + error.message);
-                awaitingInput = false;
-                isQueued = false;
-                expectingResponse = false;
-                currentSessionId = null;
-                updatePrompt();
+                handleError(error, currentSessionId);
             }
         }
 
@@ -443,50 +436,10 @@
                 const result = await response.json();
                 addDebug(result, 'received');
                 
-                // Response nur verarbeiten wenn noch erwartet UND Session ID noch aktuell ist
-                if (!expectingResponse || currentSessionId !== sessionId) return;
-                
-                // CommandId aktualisieren falls neue gesendet wird
-                if (result.commandId) {
-                    currentCommandId = result.commandId;
-                }
-                
-                // Ausgabe anzeigen
-                if (result.output) {
-                    addToOutput(result.output, result.outputType);
-                }
-                
-                // Prüfen ob weitere Eingabe erwartet wird oder queue aktiv ist
-                if (result.queue) {
-                    // Queue hat Priorität - Eingabe wird deaktiviert
-                    isQueued = true;
-                    awaitingInput = false;
-                    updatePrompt();
-                    startSpinner();
-                    // Sofort nächste Anfrage senden
-                    setTimeout(() => sendQueuedRequest(), 100);
-                } else if (result.expectInput) {
-                    awaitingInput = true;
-                    isQueued = false;
-                    updatePrompt();
-                } else if (result.commandComplete) {
-                    awaitingInput = false;
-                    isQueued = false;
-                    expectingResponse = false;
-                    currentSessionId = null;
-                    updatePrompt();
-                }
+                handleResponse(result, sessionId);
                 
             } catch (error) {
-                // Fehler nur verarbeiten wenn Session ID noch aktuell ist
-                if (!expectingResponse || currentSessionId !== sessionId) return;
-                
-                addToOutput('Error: ' + error.message);
-                awaitingInput = false;
-                isQueued = false;
-                expectingResponse = false;
-                currentSessionId = null;
-                updatePrompt();
+                handleError(error, sessionId);
             }
         }
 
