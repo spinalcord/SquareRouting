@@ -94,7 +94,7 @@ $db->createTableIfNotExists($schema->account());
 $db->createTableIfNotExists($schema->permission());
 $db->createTableIfNotExists($schema->role_permissions());
 $db->createTableIfNotExists($schema->configuration());
-
+$account->initializeDefaultRoles();
 // //////////////////////////////////
 // SETUP Routing
 // //////////////////////////////////

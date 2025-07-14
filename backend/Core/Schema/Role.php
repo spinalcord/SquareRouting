@@ -41,6 +41,7 @@ enum Role: string
     {
         return match($this) {
             self::ADMIN => [
+                Permission::CLI_ACCESS,
                 Permission::USERS_CREATE,
                 Permission::USERS_READ,
                 Permission::USERS_UPDATE,
