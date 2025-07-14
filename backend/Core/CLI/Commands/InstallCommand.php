@@ -101,7 +101,7 @@ class InstallCommand extends BaseCommand
                     $this->account->assignRole($this->account->getCurrentUserId(), \SquareRouting\Core\Schema\Role::ADMIN->value);
                     $this->dotEnv->set('SYSTEM_MARKED_AS_INSTALLED',true);
                     $this->dotEnv->save();
-                    return ['config' => 'loaded'];
+                    return (new StepFeedback)->success("Welcome ". $data['username'], true, additionalData: ["label" => $data['username']]);
                 }
             );
 

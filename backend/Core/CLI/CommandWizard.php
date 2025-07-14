@@ -117,14 +117,7 @@ class CommandWizard
                 if (is_array($processorResult) && isset($processorResult['terminate'])) {
                     $this->cleanup();
 
-                    return [
-                        'commandId' => $commandId,
-                        'output' => $processorResult['message'],
-                        'outputType' => $processorResult['type'] ?? 'success',
-                        'commandComplete' => true,
-                        'expectInput' => false,
-                        'queue' => false,
-                    ];
+                    return $this->createTerminateResponse($processorResult, $commandId);
                 }
                 $data = array_merge($data, $processorResult ?? []);
             }
@@ -159,14 +152,7 @@ class CommandWizard
             if (is_array($validationResult) && ($validationResult['terminate'] ?? false)) {
                 $this->cleanup();
 
-                return [
-                    'commandId' => $commandId,
-                    'output' => $validationResult['message'],
-                    'outputType' => $validationResult['type'] ?? 'error',
-                    'commandComplete' => true,
-                    'expectInput' => false,
-                    'queue' => false,
-                ];
+                return $this->createTerminateResponse($validationResult, $commandId);
             }
 
             // Validation Error - Frage wiederholen
@@ -181,14 +167,7 @@ class CommandWizard
             if (is_array($processorResult) && isset($processorResult['terminate'])) {
                 $this->cleanup();
 
-                return [
-                    'commandId' => $commandId,
-                    'output' => $processorResult['message'],
-                    'outputType' => $processorResult['type'] ?? 'success',
-                    'commandComplete' => true,
-                    'expectInput' => false,
-                    'queue' => false,
-                ];
+                return $this->createTerminateResponse($processorResult, $commandId);
             }
             $data = array_merge($data, $processorResult ?? []);
         } else {
@@ -217,18 +196,48 @@ class CommandWizard
         return $this->askQuestion($currentStep, $commandId);
     }
 
+    private function createTerminateResponse(array $processorResult, string $commandId): array
+    {
+        // Basis-Response erstellen
+        $response = [
+            'commandId' => $commandId,
+            'output' => $processorResult['message'] ?? '',
+            'outputType' => $processorResult['type'] ?? 'success',
+            'commandComplete' => true,
+            'expectInput' => false,
+            'queue' => false,
+        ];
+
+        // Zusätzliche Daten aus StepFeedback hinzufügen
+        foreach ($processorResult as $key => $value) {
+            if (!in_array($key, ['terminate', 'message', 'type'])) {
+                $response[$key] = $value;
+            }
+        }
+
+        return $response;
+    }
+
     private function handleValidationError($validationResult, string $commandId): array
     {
         $outputType = 'warning';
         $message = $validationResult;
+        $additionalData = [];
 
-        // Erweiterte Validation-Response mit outputType
+        // Erweiterte Validation-Response mit outputType und zusätzlichen Daten
         if (is_array($validationResult)) {
             $message = $validationResult['message'] ?? $validationResult['output'] ?? 'Fehler';
             $outputType = $validationResult['type'] ?? 'warning';
+            
+            // Zusätzliche Daten extrahieren
+            foreach ($validationResult as $key => $value) {
+                if (!in_array($key, ['terminate', 'message', 'type', 'output'])) {
+                    $additionalData[$key] = $value;
+                }
+            }
         }
 
-        return [
+        $response = [
             'commandId' => $commandId,
             'output' => $message,
             'outputType' => $outputType,
@@ -236,6 +245,9 @@ class CommandWizard
             'expectInput' => true,
             'queue' => false,
         ];
+
+        // Zusätzliche Daten hinzufügen
+        return array_merge($response, $additionalData);
     }
 
     private function askQuestion(int $stepIndex, string $commandId): array

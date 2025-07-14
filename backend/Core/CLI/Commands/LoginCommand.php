@@ -76,12 +76,7 @@ class LoginCommand extends BaseCommand
                 function ($input, $data) {
                     try {
                         $this->account->login($data['email'], $data['password']);
-                        return [
-                            'terminate' => true, 
-                            'label' => $this->account->getCurrentUsername(), 
-                            'message' => 'Login successful! Welcome back.', 
-                            'type' => 'success'
-                        ];
+                        return (new StepFeedback)->success("Login successful! Welcome back ". $data['username'], true, additionalData: ["label" => $this->account->getCurrentUsername()]);
                     } catch (\InvalidArgumentException $e) {
                         return ['terminate' => true, 'message' => $e->getMessage(), 'type' => 'error'];
                     } catch (\RuntimeException $e) {
