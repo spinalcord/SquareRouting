@@ -71,10 +71,8 @@ $language = $container->get(Language::class);
 
 $config = null;
 
-if ($dotEnv->get("SYSTEM_MARKED_AS_INSTALLED")) {
     $container->register(Configuration::class, parameters: ['database' => $db, 'autosave' => false]);
     $config = $container->get(Configuration::class);
-}
 
 // Configuration
 
@@ -94,7 +92,6 @@ $corsMiddleware->handle($dotEnv->get('ALLOWED_ORIGINS'));
 // Create tables
 // //////////////////////////////////
 
-if ($dotEnv->get("SYSTEM_MARKED_AS_INSTALLED") == false) {
   $schema = new Schema;
 
   $db->createTableIfNotExists($schema->role());
@@ -103,7 +100,7 @@ if ($dotEnv->get("SYSTEM_MARKED_AS_INSTALLED") == false) {
   $db->createTableIfNotExists($schema->role_permissions());
   $db->createTableIfNotExists($schema->configuration());
   $account->initializeDefaultRoles();
-}
+
 
 // //////////////////////////////////
 // SETUP Routing
@@ -124,19 +121,3 @@ if ($routeCollector->dispatch() == false) {
 }
 
 
-// Funktion zum Speichern der Session in eine JSON-Datei
-function saveSessionToJson($filename) {
-    // Session-Daten in ein Array umwandeln
-    $sessionData = $_SESSION;
-
-    // Array in JSON umwandeln
-    $jsonData = json_encode($sessionData, JSON_PRETTY_PRINT);
-
-    // JSON in die Datei schreiben
-    if (file_put_contents($filename, $jsonData) === false) {
-    } else {
-    }
-}
-
-// JSON-Datei speichern
-saveSessionToJson('session_data.json');

@@ -1,13 +1,12 @@
 <?php
-
 namespace SquareRouting\Core;
+
 use Exception;
 
 class MarkdownRenderer
 {
     private array $blockPatterns;
     private array $inlinePatterns;
-    private array $listStack = [];
     private array $usedIds = [];
     private ?Cache $cache = null;
 
@@ -19,68 +18,46 @@ class MarkdownRenderer
 
     public function render(string $markdown): string
     {
-        // Wenn Cache verfügbar ist, nutze ihn
         if ($this->cache) {
             $cacheKey = $this->generateCacheKey($markdown);
-
-            return $this->cache->get('markdown', $cacheKey, function ($markdown) {
-                return $this->doRender($markdown);
-            }, 3600, [$markdown]);
+            return $this->cache->get('markdown', $cacheKey, fn() => $this->doRender($markdown), 3600);
         }
-
-        // Ohne Cache direkt rendern
         return $this->doRender($markdown);
     }
 
     public function renderFile(string $filePath): string
     {
-        if (! file_exists($filePath)) {
+        if (!file_exists($filePath)) {
             throw new Exception("Markdown file not found: {$filePath}");
         }
-
         $markdown = file_get_contents($filePath);
 
-        // Wenn Cache verfügbar ist, nutze ihn mit Dateiänderungszeit
         if ($this->cache) {
             $fileModTime = filemtime($filePath);
             $cacheKey = $this->generateFileCacheKey($filePath, $fileModTime);
-
-            return $this->cache->get('markdown_file', $cacheKey, function ($markdown) {
-                return $this->doRender($markdown);
-            }, 3600, [$markdown]);
+            return $this->cache->get('markdown_file', $cacheKey, fn() => $this->doRender($markdown), 3600);
         }
 
-        // Ohne Cache direkt rendern
         return $this->doRender($markdown);
     }
 
     public function renderToFile(string $markdown, string $filename): bool
     {
         $html = $this->render($markdown);
-
         return file_put_contents($filename, $html) !== false;
     }
 
     public function clearCache(?string $filePath = null): void
     {
-        if (! $this->cache) {
+        if (!$this->cache) {
             return;
         }
-
         if ($filePath) {
-            // Lösche Cache für spezifische Datei (alle Versionen)
-            $baseKey = 'file_' . hash('sha256', $filePath . '_');
             $this->cache->clear('markdown_file');
         } else {
-            // Lösche gesamten Markdown-Cache
             $this->cache->clear('markdown');
             $this->cache->clear('markdown_file');
         }
-    }
-
-    public function addCustomPattern(string $name, string $pattern, callable $renderer): void
-    {
-        $this->inlinePatterns[$name] = $pattern;
     }
 
     public function validate(string $markdown): array
@@ -89,36 +66,18 @@ class MarkdownRenderer
         $lines = explode("\n", $markdown);
 
         foreach ($lines as $lineNum => $line) {
-            // Prüfe auf häufige Markdown-Fehler
             if (preg_match('/^#{7,}/', $line)) {
                 $errors[] = 'Zeile ' . ($lineNum + 1) . ': Zu viele # für Überschrift (max. 6)';
             }
-
-            if (preg_match('/\[([^\]]+)\]\(([^)]*)\)/', $line, $matches)) {
-                if (empty($matches[2])) {
-                    $errors[] = 'Zeile ' . ($lineNum + 1) . ': Leere URL in Link';
-                }
+            if (preg_match('/\[([^\]]+)\]\(([^)]*)\)/', $line, $matches) && empty($matches[2])) {
+                $errors[] = 'Zeile ' . ($lineNum + 1) . ': Leere URL in Link';
             }
         }
-
         return $errors;
     }
 
     private function initializePatterns(): void
     {
-        // Block-level patterns
-        $this->blockPatterns = [
-            'code_block' => '/^```(\w+)?\s*\n(.*?)\n```$/ms',
-            'heading' => '/^(#{1,6})\s+(.+)$/m',
-            'hr' => '/^(-{3,}|\*{3,}|_{3,})$/m',
-            'blockquote' => '/^>\s*(.*)$/m',
-            'unordered_list' => '/^(\s*)[\*\-\+]\s+(.+)$/m',
-            'ordered_list' => '/^(\s*)\d+\.\s+(.+)$/m',
-            'table' => '/^\|(.+)\|$/m',
-            'paragraph' => '/^(?!#|>|\*|\-|\+|\d+\.|```|---|___|\*\*\*|\|)(.+)$/m',
-        ];
-
-        // Inline patterns - korrigierte Reihenfolge und Regex
         $this->inlinePatterns = [
             'escape' => '/\\\\([\\`*_{}\[\]()#+\-.!])/',
             'code' => '/`([^`\n]+)`/',
@@ -127,27 +86,23 @@ class MarkdownRenderer
             'strikethrough' => '/~~([^~\n]+?)~~/',
             'image' => '/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)/',
             'link' => '/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)/',
-            'autolink' => '/(?<![\[\(])(https?:\/\/[^\s<>\[\]()]+)(?![^\s]*[\]\)])/', // Verbesserte Autolink-Regex
+            'autolink' => '/(?<![\[\(])(https?:\/\/[^\s<>\[\]()]{2,})(?![^\s]*[\]\)])/',
         ];
     }
 
     private function doRender(string $markdown): string
     {
-        // Reset state
         $this->usedIds = [];
-        $this->listStack = [];
 
-        // Normalisiere Zeilenenden
         $markdown = str_replace(["\r\n", "\r"], "\n", $markdown);
 
-        // Entferne Front Matter falls vorhanden
-        $markdown = $this->removeFrontMatter($markdown);
+        // Front Matter und Metadaten in einem Schritt entfernen
+        $result = $this->extractFrontMatter($markdown);
+        $markdown = $result['content'];
 
-        // Teile in Blöcke auf
         $blocks = $this->parseBlocks($markdown);
-
-        // Rendere jeden Block
         $html = '';
+
         foreach ($blocks as $block) {
             $html .= $this->renderBlock($block);
         }
@@ -155,285 +110,232 @@ class MarkdownRenderer
         return trim($html);
     }
 
-    private function removeFrontMatter(string $markdown): string
+    private function extractFrontMatter(string $markdown): array
     {
-        if (preg_match('/^---\s*\n.*?\n---\s*\n/s', $markdown)) {
-            return preg_replace('/^---\s*\n.*?\n---\s*\n/s', '', $markdown);
+        if (preg_match('/^---\s*\n(.*?)\n---\s*\n/s', $markdown, $matches)) {
+            return [
+                'content' => substr($markdown, strlen($matches[0])),
+            ];
         }
-
-        return $markdown;
+        return ['content' => $markdown];
     }
 
     private function parseBlocks(string $markdown): array
     {
-        $lines = explode("\n", $markdown);
         $blocks = [];
-        $currentBlock = null;
+        $lines = explode("\n", $markdown);
         $i = 0;
 
         while ($i < count($lines)) {
             $line = $lines[$i];
 
-            // Code-Blöcke haben absolute Priorität
-            if (preg_match('/^```(\w+)?/', $line, $matches)) {
-                if ($currentBlock) {
-                    $blocks[] = $currentBlock;
-                    $currentBlock = null;
-                }
-
-                $language = $matches[1] ?? '';
-                $code = '';
-                $i++;
-
-                while ($i < count($lines) && ! preg_match('/^```$/', $lines[$i])) {
-                    $code .= $lines[$i] . "\n";
-                    $i++;
-                }
-
-                $blocks[] = [
-                    'type' => 'code_block',
-                    'content' => rtrim($code),
-                    'language' => $language,
-                ];
-                $i++;
-
+            // 1. Codeblock (hat höchste Priorität)
+            if (str_starts_with(trim($line), '```')) {
+                [$codeBlock, $newIndex] = $this->parseCodeBlock($lines, $i);
+                $blocks[] = $codeBlock;
+                $i = $newIndex;
                 continue;
             }
 
-            // Blockquote-Handling - sammle mehrere Zeilen
-            if (preg_match('/^>\s*/', $line)) {
-                if ($currentBlock && $currentBlock['type'] === 'blockquote') {
-                    $currentBlock['content'] .= "\n" . $line;
-                } else {
-                    if ($currentBlock) {
-                        $blocks[] = $currentBlock;
-                    }
-                    $currentBlock = [
-                        'type' => 'blockquote',
-                        'content' => $line,
-                    ];
-                }
-                $i++;
-
+            // 2. Tabelle
+            if (str_starts_with($line, '|')) {
+                [$tableBlock, $newIndex] = $this->parseTableBlock($lines, $i);
+                $blocks[] = $tableBlock;
+                $i = $newIndex;
                 continue;
             }
 
-            // Tabellen-Erkennung
-            if (preg_match('/^\|(.+)\|$/', $line)) {
-                if ($currentBlock) {
-                    $blocks[] = $currentBlock;
-                    $currentBlock = null;
-                }
-
-                $tableRows = [$line];
-                $i++;
-
-                // Sammle alle Tabellenzeilen
-                while ($i < count($lines) && preg_match('/^\|(.+)\|$/', $lines[$i])) {
-                    $tableRows[] = $lines[$i];
-                    $i++;
-                }
-
-                $blocks[] = [
-                    'type' => 'table',
-                    'rows' => $tableRows,
-                ];
-
+            // 3. Blockquote
+            if (str_starts_with($line, '>')) {
+                [$quoteLines, $newIndex] = $this->collectLines($lines, $i, fn($l) => str_starts_with($l, '>'));
+                $blocks[] = ['type' => 'blockquote', 'content' => implode("\n", $quoteLines)];
+                $i = $newIndex;
                 continue;
             }
 
-            // Leere Zeilen beenden Blöcke
+            // 4. Horizontal Rule
+            if (preg_match('/^(-{3,}|\*{3,}|_{3,})$/', trim($line))) {
+                $blocks[] = ['type' => 'hr'];
+                $i++;
+                continue;
+            }
+
+            // 5. Listen und Absätze
             if (trim($line) === '') {
-                if ($currentBlock) {
-                    $blocks[] = $currentBlock;
-                    $currentBlock = null;
-                }
                 $i++;
-
                 continue;
             }
 
-            // Bestimme Block-Typ
-            $blockType = $this->getBlockType($line);
-
-            // Listen-Handling
-            if (in_array($blockType, ['unordered_list', 'ordered_list'])) {
-                $indent = $this->getIndentLevel($line);
-                $content = $this->getListItemContent($line);
-
-                if ($currentBlock && $currentBlock['type'] === $blockType) {
-                    $currentBlock['items'][] = [
-                        'content' => $content,
-                        'indent' => $indent,
-                    ];
-                } else {
-                    if ($currentBlock) {
-                        $blocks[] = $currentBlock;
-                    }
-                    $currentBlock = [
-                        'type' => $blockType,
-                        'items' => [[
-                            'content' => $content,
-                            'indent' => $indent,
-                        ]],
-                    ];
-                }
-            } else {
-                if ($currentBlock) {
-                    $blocks[] = $currentBlock;
-                    $currentBlock = null;
-                }
-
-                $blocks[] = [
-                    'type' => $blockType,
-                    'content' => $line,
-                ];
+            if (preg_match('/^(\s*)([\*\-\+]|\d+\.)\s+(.+)$/', $line)) {
+                [$listBlock, $newIndex] = $this->parseListBlock($lines, $i);
+                $blocks[] = $listBlock;
+                $i = $newIndex;
+                continue;
             }
 
-            $i++;
-        }
+            // 6. Überschrift
+            if (preg_match('/^#{1,6}\s+/', $line)) {
+                $blocks[] = ['type' => 'heading', 'content' => $line];
+                $i++;
+                continue;
+            }
 
-        if ($currentBlock) {
-            $blocks[] = $currentBlock;
+            // 7. Absatz
+            [$paraLines, $newIndex] = $this->collectLinesUntil($lines, $i, fn($l, $next) => 
+                !in_array('', [$l, $next]) && 
+                !str_starts_with($next, '|') && 
+                !str_starts_with($next, '>') && 
+                !preg_match('/^#{1,6}\s+/', $next) &&
+                !str_starts_with(trim($next), '```')
+            );
+            $blocks[] = ['type' => 'paragraph', 'content' => implode("\n", $paraLines)];
+            $i = $newIndex;
         }
 
         return $blocks;
     }
 
-    private function getBlockType(string $line): string
+    private function parseCodeBlock(array $lines, int $start): array
     {
-        if (preg_match('/^#{1,6}\s+/', $line)) {
-            return 'heading';
+        $firstLine = $lines[$start];
+        $language = '';
+        if (preg_match('/^```(\w+)?/', $firstLine, $m)) {
+            $language = $m[1] ?? '';
         }
-        if (preg_match('/^(-{3,}|\*{3,}|_{3,})$/', $line)) {
-            return 'hr';
+        $code = '';
+        $i = $start + 1;
+        while ($i < count($lines) && !str_starts_with(trim($lines[$i]), '```')) {
+            $code .= $lines[$i] . "\n";
+            $i++;
         }
-        if (preg_match('/^>\s*/', $line)) {
-            return 'blockquote';
+        $i++; // Skip closing ```
+        $content = rtrim($code, "\n");
+        return [['type' => 'code_block', 'content' => $content, 'language' => $language], $i];
+    }
+
+    private function parseTableBlock(array $lines, int $start): array
+    {
+        $rows = [];
+        $i = $start;
+        while ($i < count($lines) && str_starts_with($lines[$i], '|')) {
+            $rows[] = $lines[$i];
+            $i++;
         }
-        if (preg_match('/^(\s*)[\*\-\+]\s+/', $line)) {
-            return 'unordered_list';
-        }
-        if (preg_match('/^(\s*)\d+\.\s+/', $line)) {
-            return 'ordered_list';
-        }
-        if (preg_match('/^\|(.+)\|$/', $line)) {
-            return 'table';
+        return [['type' => 'table', 'rows' => $rows], $i];
+    }
+
+    private function parseListBlock(array $lines, int $start): array
+    {
+        $items = [];
+        $i = $start;
+
+        while ($i < count($lines)) {
+            $line = $lines[$i];
+            if (trim($line) === '' || !preg_match('/^(\s*)([\*\-\+]|\d+\.)\s+(.+)$/', $line)) {
+                break;
+            }
+
+            $indent = $this->getIndentLevel($line);
+            $content = preg_replace('/^(\s*)([\*\-\+]|\d+\.)\s+/', '', $line);
+            $items[] = ['content' => $content, 'indent' => $indent];
+            $i++;
         }
 
-        return 'paragraph';
+        $tag = preg_match('/^(\s*)\d+\./', $lines[$start]) ? 'ordered_list' : 'unordered_list';
+        return [['type' => $tag, 'items' => $items], $i];
+    }
+
+    private function collectLines(array $lines, int $start, callable $condition): array
+    {
+        $collected = [];
+        $i = $start;
+        while ($i < count($lines) && $condition($lines[$i])) {
+            $collected[] = $lines[$i];
+            $i++;
+        }
+        return [$collected, $i];
+    }
+
+    private function collectLinesUntil(array $lines, int $start, callable $stopWhenTrue): array
+    {
+        $collected = [$lines[$start]];
+        $i = $start + 1;
+        while ($i < count($lines)) {
+            $current = $lines[$i];
+            $next = $i + 1 < count($lines) ? $lines[$i + 1] : '';
+            if ($stopWhenTrue($current, $next)) {
+                break;
+            }
+            $collected[] = $current;
+            $i++;
+        }
+        return [$collected, $i];
     }
 
     private function getIndentLevel(string $line): int
     {
-        preg_match('/^(\s*)/', $line, $matches);
-
-        return strlen($matches[1] ?? '');
-    }
-
-    private function getListItemContent(string $line): string
-    {
-        if (preg_match('/^(\s*)[\*\-\+]\s+(.+)$/', $line, $matches)) {
-            return $matches[2];
-        }
-        if (preg_match('/^(\s*)\d+\.\s+(.+)$/', $line, $matches)) {
-            return $matches[2];
-        }
-
-        return trim($line);
+        return (int) preg_match('/^(\s*)/', $line, $m) ? strlen($m[1]) : 0;
     }
 
     private function renderBlock(array $block): string
     {
-        switch ($block['type']) {
-            case 'heading':
-                return $this->renderHeading($block['content']);
-
-            case 'paragraph':
-                return $this->renderParagraph($block['content']);
-
-            case 'code_block':
-                return $this->renderCodeBlock($block['content'], $block['language'] ?? '');
-
-            case 'hr':
-                return "<hr>\n";
-
-            case 'blockquote':
-                return $this->renderBlockquote($block['content']);
-
-            case 'unordered_list':
-                return $this->renderList($block['items'], 'ul');
-
-            case 'ordered_list':
-                return $this->renderList($block['items'], 'ol');
-
-            case 'table':
-                return $this->renderTable($block['rows']);
-
-            default:
-                return $this->renderParagraph($block['content']);
-        }
+        return match ($block['type']) {
+            'heading' => $this->renderHeading($block['content']),
+            'paragraph' => $this->renderParagraph($block['content']),
+            'code_block' => $this->renderCodeBlock($block['content'], $block['language'] ?? ''),
+            'hr' => "<hr>\n",
+            'blockquote' => $this->renderBlockquote($block['content']),
+            'unordered_list' => $this->renderList($block['items'], 'ul'),
+            'ordered_list' => $this->renderList($block['items'], 'ol'),
+            'table' => $this->renderTable($block['rows']),
+            default => $this->renderParagraph($block['content']),
+        };
     }
 
-    private function renderHeading(string $content): string
+    private function renderHeading(string $line): string
     {
-        if (preg_match('/^(#{1,6})\s+(.+)$/', $content, $matches)) {
-            $level = strlen($matches[1]);
-            $text = $this->renderInline($matches[2]);
-            $id = $this->generateUniqueId($matches[2]);
-
-            return "<h{$level} id=\"{$id}\">{$text}</h{$level}>\n";
+        if (!preg_match('/^(#{1,6})\s+(.+)$/', $line, $m)) {
+            return '';
         }
-
-        return '';
+        $level = strlen($m[1]);
+        $text = $this->renderInline($m[2]);
+        $id = $this->generateUniqueId($m[2]);
+        return "<h{$level} id=\"{$id}\">{$text}</h{$level}>\n";
     }
 
     private function renderParagraph(string $content): string
     {
+        $content = str_replace("\n", ' ', $content);
         $content = $this->renderInline($content);
-
         return "<p>{$content}</p>\n";
     }
 
-    private function renderCodeBlock(string $content, string $language = ''): string
+    private function renderCodeBlock(string $content, string $language): string
     {
         $content = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
-        $langClass = $language ? " class=\"language-{$language}\"" : '';
-
-        return "<pre><code{$langClass}>{$content}</code></pre>\n";
+        $class = $language ? " class=\"language-{$language}\"" : '';
+        return "<pre><code{$class}>{$content}</code></pre>\n";
     }
 
     private function renderBlockquote(string $content): string
     {
-        // Verarbeite mehrere Zeilen
         $lines = explode("\n", $content);
-        $processedLines = [];
-
+        $parsed = [];
         foreach ($lines as $line) {
-            $line = preg_replace('/^>\s*/', '', $line);
-            if (trim($line) !== '') {
-                $processedLines[] = $this->renderInline($line);
+            $line = trim(preg_replace('/^>\s*/', '', $line));
+            if ($line !== '') {
+                $parsed[] = $this->renderInline($line);
             }
         }
-
-        if (empty($processedLines)) {
-            return "<blockquote><p></p></blockquote>\n";
-        }
-
-        $content = implode(' ', $processedLines);
-
+        $content = implode(' ', $parsed);
         return "<blockquote><p>{$content}</p></blockquote>\n";
     }
 
     private function renderList(array $items, string $tag): string
     {
-        if (empty($items)) {
-            return '';
-        }
+        if (empty($items)) return '';
 
-        // Erstelle hierarchische Struktur
         $tree = $this->buildListTree($items);
-
         return $this->renderListTree($tree, $tag);
     }
 
@@ -443,24 +345,17 @@ class MarkdownRenderer
         $stack = [];
 
         foreach ($items as $item) {
-            $level = intval($item['indent'] / 2); // 2 Leerzeichen pro Ebene
-            $node = [
-                'content' => $item['content'],
-                'level' => $level,
-                'children' => [],
-            ];
+            $level = (int) floor($item['indent'] / 4); // 4 Leerzeichen pro Ebene (CommonMark)
+            $node = ['content' => $item['content'], 'level' => $level, 'children' => []];
 
-            // Bereinige den Stack bis zur aktuellen Ebene
             while (count($stack) > $level) {
                 array_pop($stack);
             }
 
             if (empty($stack)) {
-                // Top-level Element
                 $tree[] = $node;
                 $stack[] = &$tree[count($tree) - 1];
             } else {
-                // Kind-Element
                 $parent = &$stack[count($stack) - 1];
                 $parent['children'][] = $node;
                 $stack[] = &$parent['children'][count($parent['children']) - 1];
@@ -472,302 +367,152 @@ class MarkdownRenderer
 
     private function renderListTree(array $tree, string $tag): string
     {
-        if (empty($tree)) {
-            return '';
-        }
-
         $html = "<{$tag}>\n";
-
         foreach ($tree as $node) {
             $content = $this->renderInline($node['content']);
             $html .= "<li>{$content}";
-
-            if (! empty($node['children'])) {
+            if (!empty($node['children'])) {
                 $html .= "\n" . $this->renderListTree($node['children'], $tag);
             }
-
             $html .= "</li>\n";
         }
-
         $html .= "</{$tag}>\n";
-
         return $html;
     }
 
     private function renderTable(array $rows): string
     {
-        if (empty($rows)) {
-            return '';
-        }
+        if (empty($rows)) return '';
 
         $html = "<table>\n";
-        $rowIndex = 0;
+        $headerDone = false;
 
-        foreach ($rows as $row) {
+        foreach ($rows as $i => $row) {
             $cells = array_map('trim', explode('|', trim($row, '|')));
-
-            // Prüfe ob es eine Separator-Zeile ist (zweite Zeile)
-            if ($rowIndex === 1 && $this->isTableSeparator($row)) {
-                $rowIndex++;
-
+            if (!$headerDone && $i === 1 && $this->isTableSeparator($row)) {
+                $headerDone = true;
                 continue;
             }
 
-            $tag = ($rowIndex === 0) ? 'th' : 'td';
+            $tag = $i === 0 ? 'th' : 'td';
             $html .= "<tr>\n";
-
             foreach ($cells as $cell) {
                 $content = $this->renderInline($cell);
-                $html .= "<{$tag}>{$content}</{$tag}>\n";
+                $html .= "  <{$tag}>{$content}</{$tag}>\n";
             }
-
             $html .= "</tr>\n";
-            $rowIndex++;
+
+            if ($i === 0) $headerDone = true;
         }
 
         $html .= "</table>\n";
-
         return $html;
     }
 
     private function isTableSeparator(string $row): bool
     {
-        $row = trim($row, '|');
-        $cells = explode('|', $row);
-
+        $cells = array_map('trim', explode('|', trim($row, '|')));
         foreach ($cells as $cell) {
-            $cell = trim($cell);
-            if (! preg_match('/^:?-+:?$/', $cell)) {
+            if (!preg_match('/^:?-+:?$/', $cell)) {
                 return false;
             }
         }
-
         return true;
     }
 
     private function renderInline(string $text): string
     {
         $placeholders = [];
-        $placeholderCounter = 0;
+        $counter = 0;
 
-        // 1. Handle escape sequences FIRST
-        $text = preg_replace_callback('/\\\\([\\`*_{}\[\]()#+\-.!])/', function ($matches) {
-            return 'ESCAPED_' . ord($matches[1]) . '_CHAR';
+        // 1. Escapes
+        $text = preg_replace_callback($this->inlinePatterns['escape'], function ($m) use (&$placeholders, &$counter) {
+            $ph = "___ESC_{$counter}___";
+            $placeholders[$ph] = $m[1];
+            $counter++;
+            return $ph;
         }, $text);
 
-        // 2. Handle code spans BEFORE anything else
-        $text = preg_replace_callback('/`([^`\n]+)`/', function ($matches) use (&$placeholders, &$placeholderCounter) {
-            $placeholder = "___CODE_PLACEHOLDER_{$placeholderCounter}___";
-            $placeholders[$placeholder] = '<code>' . htmlspecialchars($matches[1], ENT_QUOTES, 'UTF-8') . '</code>';
-            $placeholderCounter++;
-
-            return $placeholder;
+        // 2. Code
+        $text = preg_replace_callback($this->inlinePatterns['code'], function ($m) use (&$placeholders, &$counter) {
+            $ph = "___CODE_{$counter}___";
+            $placeholders[$ph] = '<code>' . htmlspecialchars($m[1], ENT_QUOTES, 'UTF-8') . '</code>';
+            $counter++;
+            return $ph;
         }, $text);
 
-        // 3. Handle images BEFORE links to avoid conflicts
-        $text = preg_replace_callback('/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)/', function ($matches) use (&$placeholders, &$placeholderCounter) {
-            $alt = htmlspecialchars($matches[1], ENT_QUOTES, 'UTF-8');
-            $src = htmlspecialchars($matches[2], ENT_QUOTES, 'UTF-8');
-            $title = isset($matches[3]) ? ' title="' . htmlspecialchars($matches[3], ENT_QUOTES, 'UTF-8') . '"' : '';
-            $placeholder = "___IMG_PLACEHOLDER_{$placeholderCounter}___";
-            $placeholders[$placeholder] = "<img src=\"{$src}\" alt=\"{$alt}\"{$title}>";
-            $placeholderCounter++;
-
-            return $placeholder;
+        // 3. Bilder
+        $text = preg_replace_callback($this->inlinePatterns['image'], function ($m) use (&$placeholders, &$counter) {
+            $alt = htmlspecialchars($m[1], ENT_QUOTES, 'UTF-8');
+            $src = htmlspecialchars($m[2], ENT_QUOTES, 'UTF-8');
+            $title = $m[3] ? ' title="' . htmlspecialchars($m[3], ENT_QUOTES, 'UTF-8') . '"' : '';
+            $ph = "___IMG_{$counter}___";
+            $placeholders[$ph] = "<img src=\"{$src}\" alt=\"{$alt}\"{$title}>";
+            $counter++;
+            return $ph;
         }, $text);
 
-        // 4. Handle explicit links BEFORE autolinks
-        $text = preg_replace_callback('/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)/', function ($matches) use (&$placeholders, &$placeholderCounter) {
-            $linkText = $matches[1];
-            $url = htmlspecialchars($matches[2], ENT_QUOTES, 'UTF-8');
-            $title = isset($matches[3]) ? ' title="' . htmlspecialchars($matches[3], ENT_QUOTES, 'UTF-8') . '"' : '';
-            $placeholder = "___LINK_PLACEHOLDER_{$placeholderCounter}___";
-            $placeholders[$placeholder] = "<a href=\"{$url}\"{$title}>{$linkText}</a>";
-            $placeholderCounter++;
-
-            return $placeholder;
+        // 4. Links
+        $text = preg_replace_callback($this->inlinePatterns['link'], function ($m) use (&$placeholders, &$counter) {
+            $text = $m[1];
+            $url = htmlspecialchars($m[2], ENT_QUOTES, 'UTF-8');
+            $title = $m[3] ? ' title="' . htmlspecialchars($m[3], ENT_QUOTES, 'UTF-8') . '"' : '';
+            $ph = "___LINK_{$counter}___";
+            $placeholders[$ph] = "<a href=\"{$url}\"{$title}>{$text}</a>";
+            $counter++;
+            return $ph;
         }, $text);
 
-        // 5. Escape HTML
+        // 5. HTML escapen
         $text = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
-        // 6. Apply remaining inline patterns
-        $patterns = [
-            'strong' => '/\*\*([^*\n]+?)\*\*/',
-            'em' => '/(?<!\*)\*([^*\n]+?)\*(?!\*)/',
-            'strikethrough' => '/~~([^~\n]+?)~~/',
-            'autolink' => '/(?<![\[\(])(https?:\/\/[^\s&lt;&gt;\[\]()]{2,})(?![^\s]*[\]\)])/',
-        ];
+        // 6. Sonstige Inline-Elemente
+        $text = preg_replace($this->inlinePatterns['strong'], '<strong>$1</strong>', $text);
+        $text = preg_replace($this->inlinePatterns['em'], '<em>$1</em>', $text);
+        $text = preg_replace($this->inlinePatterns['strikethrough'], '<del>$1</del>', $text);
+        $text = preg_replace($this->inlinePatterns['autolink'], '<a href="$1">$1</a>', $text);
 
-        foreach ($patterns as $type => $pattern) {
-            $text = preg_replace_callback($pattern, function ($matches) use ($type) {
-                return $this->renderInlineElement($type, $matches);
-            }, $text);
+        // 7. Platzhalter ersetzen
+        foreach ($placeholders as $ph => $html) {
+            $text = str_replace($ph, $html, $text);
         }
 
-        // 7. Replace placeholders with actual HTML
-        foreach ($placeholders as $placeholder => $html) {
-            $text = str_replace($placeholder, $html, $text);
-        }
-
-        // 8. Restore escaped characters
-        $text = preg_replace_callback('/ESCAPED_(\d+)_CHAR/', function ($matches) {
-            return chr((int) $matches[1]);
+        // 8. Escapes zurück
+        $text = preg_replace_callback('/___ESC_(\d+)___/', function ($m) use ($placeholders) {
+            return $placeholders["___ESC_{$m[1]}___"];
         }, $text);
 
         return $text;
     }
 
-    private function renderInlineElement(string $type, array $matches): string
-    {
-        switch ($type) {
-            case 'strong':
-                return '<strong>' . $matches[1] . '</strong>';
-
-            case 'em':
-                return '<em>' . $matches[1] . '</em>';
-
-            case 'strikethrough':
-                return '<del>' . $matches[1] . '</del>';
-
-            case 'autolink':
-                $url = htmlspecialchars_decode($matches[1]);
-
-                return "<a href=\"{$url}\">{$url}</a>";
-
-            default:
-                return $matches[0];
-        }
-    }
-
     private function generateUniqueId(string $text): string
     {
-        $baseId = $this->generateId($text);
-        $id = $baseId;
-        $counter = 1;
-
+        $base = $this->generateId($text);
+        $id = $base;
+        $suffix = 1;
         while (in_array($id, $this->usedIds)) {
-            $id = $baseId . '-' . $counter;
-            $counter++;
+            $id = $base . '-' . $suffix++;
         }
-
         $this->usedIds[] = $id;
-
         return $id;
     }
 
     private function generateId(string $text): string
     {
-        // Entferne Markdown-Syntax für ID-Generierung
-        $text = preg_replace('/\*\*([^*]+)\*\*/', '$1', $text);
-        $text = preg_replace('/\*([^*]+)\*/', '$1', $text);
-        $text = preg_replace('/`([^`]+)`/', '$1', $text);
-
+        $text = preg_replace(['/\*\*([^*]+)\*\*/', '\*([^*]+)\*', '`([^`]+)`'], '$1', $text);
         $id = strtolower($text);
         $id = preg_replace('/[^a-z0-9\s-]/', '', $id);
         $id = preg_replace('/\s+/', '-', $id);
-        $id = trim($id, '-');
-
-        return $id ?: 'heading';
+        return trim($id, '-') ?: 'heading';
     }
 
     private function generateCacheKey(string $markdown): string
     {
-        // Verwende Hash des Inhalts für konsistente Cache-Keys
-        return 'content_' . hash('sha256', $markdown);
+        return 'content_' . md5($markdown); // schneller als sha256
     }
 
     private function generateFileCacheKey(string $filePath, int $modTime): string
     {
-        // Verwende Dateipfad + Änderungszeit für eindeutige Cache-Keys
-        return 'file_' . hash('sha256', $filePath . '_' . $modTime);
-    }
-}
-
-// Utility-Klasse bleibt unverändert
-class MarkdownUtils
-{
-    public static function tableOfContents(string $markdown): array
-    {
-        $toc = [];
-        $lines = explode("\n", $markdown);
-        $usedIds = [];
-
-        foreach ($lines as $line) {
-            if (preg_match('/^(#{1,6})\s+(.+)$/', $line, $matches)) {
-                $level = strlen($matches[1]);
-                $text = trim($matches[2]);
-                $id = self::generateUniqueId($text, $usedIds);
-
-                $toc[] = [
-                    'level' => $level,
-                    'text' => $text,
-                    'id' => $id,
-                ];
-            }
-        }
-
-        return $toc;
-    }
-
-    public static function extractMetadata(string $markdown): array
-    {
-        $metadata = [];
-
-        if (preg_match('/^---\s*\n(.*?)\n---\s*\n/s', $markdown, $matches)) {
-            $lines = explode("\n", $matches[1]);
-            foreach ($lines as $line) {
-                if (preg_match('/^(\w+):\s*(.+)$/', trim($line), $lineMatches)) {
-                    $metadata[$lineMatches[1]] = trim($lineMatches[2], '"\'');
-                }
-            }
-        }
-
-        return $metadata;
-    }
-
-    public static function getWordCount(string $markdown): int
-    {
-        $text = preg_replace('/^#{1,6}\s+/', '', $markdown);
-        $text = preg_replace('/\*\*([^*]+)\*\*/', '$1', $text);
-        $text = preg_replace('/\*([^*]+)\*/', '$1', $text);
-        $text = preg_replace('/`([^`]+)`/', '$1', $text);
-        $text = preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $text);
-        $text = preg_replace('/```.*?```/s', '', $text);
-        $text = strip_tags($text);
-
-        return str_word_count($text);
-    }
-
-    public static function getReadingTime(string $markdown, int $wordsPerMinute = 200): int
-    {
-        $wordCount = self::getWordCount($markdown);
-
-        return max(1, round($wordCount / $wordsPerMinute));
-    }
-
-    private static function generateUniqueId(string $text, array &$usedIds): string
-    {
-        $baseId = self::generateId($text);
-        $id = $baseId;
-        $counter = 1;
-
-        while (in_array($id, $usedIds)) {
-            $id = $baseId . '-' . $counter;
-            $counter++;
-        }
-
-        $usedIds[] = $id;
-
-        return $id;
-    }
-
-    private static function generateId(string $text): string
-    {
-        $id = strtolower($text);
-        $id = preg_replace('/[^a-z0-9\s-]/', '', $id);
-        $id = preg_replace('/\s+/', '-', $id);
-
-        return trim($id, '-') ?: 'heading';
+        return 'file_' . md5($filePath . '_' . $modTime);
     }
 }

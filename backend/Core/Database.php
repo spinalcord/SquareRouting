@@ -40,13 +40,12 @@ class Database
         $this->dbType = $this->dotEnv->get('DB_CONNECTION', 'mysql');
         $this->sqlitePath = $sqlitePath;
         $this->cache = $cache;
+
         if ($this->dbType == 'mysql') {
             $this->type = DatabaseDialect::MYSQL;
         } elseif ($this->dbType == 'sqlite') {
             $this->type = DatabaseDialect::SQLITE;
         }
-
-
     }
 
     public function connect(): void
@@ -72,7 +71,14 @@ class Database
             echo "<pre>";
             echo "<h2>Database connection failed</h2>";
             echo $e->getMessage() . "\n\n";
-            echo "<b>Troubleshoting: open the `.env` file in the `Config` dir.\n 1. Check `Mysql` credentials\n 2. Or switch to sqlite (DB_CONNECTION=sqlite)</b>";
+            echo "<b>Troubleshoting: open the `.env` file in the `Config` dir.
+              \n 1. Check `Mysql` credentials
+              \n 2. Or switch to sqlite (DB_CONNECTION=sqlite)</b>
+              \n 3. If sqlite is not working, you need to install sqlite drivers with your package manager and add following to your `php.ini`
+              \n extension=sqlite3
+              \n extension=pdo_sqlite
+              ";
+
             echo "</pre>";
 
             exit;
