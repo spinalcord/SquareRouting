@@ -53,6 +53,7 @@ $rateLimiter = $container->get(RateLimiter::class);
 // Database connection
 $container->register(Database::class, parameters: ['dotEnv' => $dotEnv, 'sqlitePath' => $container->get('sqlite_file_location'), 'cache' => $cache]);
 $db = $container->get(Database::class);
+$db->connect();
 $db->enableCaching(!$dotEnv->get('DEVELOPER', true));
 
 // View
@@ -67,9 +68,15 @@ $account = $container->get(Account::class);
 $container->register(Language::class, parameters: ['languageDirectory' => $container->get('languages_location'), 'defaultLanguage' => empty($_SESSION['language']) ? $dotEnv->get('DEFAULT_LANGUAGE') : $_SESSION['language']]);
 $language = $container->get(Language::class);
 
+
+$config = null;
+
+if ($dotEnv->get("SYSTEM_MARKED_AS_INSTALLED")) {
+    $container->register(Configuration::class, parameters: ['database' => $db, 'autosave' => false]);
+    $config = $container->get(Configuration::class);
+}
+
 // Configuration
-$container->register(Configuration::class, parameters: ['database' => $db, 'autosave' => false]);
-$config = $container->get(Configuration::class);
 
 // MarkdownRenderer
 // You can also create a MarkdownRenderer instance everywhere, but we want to use the same
@@ -87,14 +94,17 @@ $corsMiddleware->handle($dotEnv->get('ALLOWED_ORIGINS'));
 // Create tables
 // //////////////////////////////////
 
-$schema = new Schema;
+if ($dotEnv->get("SYSTEM_MARKED_AS_INSTALLED") == false) {
+  $schema = new Schema;
 
-$db->createTableIfNotExists($schema->role());
-$db->createTableIfNotExists($schema->account());
-$db->createTableIfNotExists($schema->permission());
-$db->createTableIfNotExists($schema->role_permissions());
-$db->createTableIfNotExists($schema->configuration());
-$account->initializeDefaultRoles();
+  $db->createTableIfNotExists($schema->role());
+  $db->createTableIfNotExists($schema->account());
+  $db->createTableIfNotExists($schema->permission());
+  $db->createTableIfNotExists($schema->role_permissions());
+  $db->createTableIfNotExists($schema->configuration());
+  $account->initializeDefaultRoles();
+}
+
 // //////////////////////////////////
 // SETUP Routing
 // //////////////////////////////////

@@ -28,8 +28,6 @@ SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexibl
     - [Response Handling](#response-handling)
         - [HTML Page Example](#html-page-example)
         - [Redirection Example](#redirection-example)
-    - [CLI Commands](#cli-commands)
-        - [Creating New Commands](#creating-new-commands)
 - [Running the Application](#running-the-application)
 - [License](#license)
 
@@ -449,8 +447,6 @@ echo $users->toSQL(); // Dynamically generates Sqlite or Mysql (depends on your 
 echo $posts->toSQL(DatabaseDialect::SQLITE); // Or explicit
 ```
 
-**Tip**: You can use the CLI command `php cli.php generate:schema` to automatically generate `ColumnName.php` and `TableName.php` constants based on your defined tables, which helps in maintaining consistency and reducing typos.
-
 #### Template Engine (Views)
 
 Render HTML templates with a Twig-like syntax:
@@ -649,50 +645,6 @@ class MarkdownExampleController
 }
 ```
 
-
-## CLI Commands
-
-SquareRouting includes a command-line interface (`cli.php`).
-To run a CLI command, navigate to the `backend` directory and execute `php cli.php [command-name]`.
-
-```bash
-cd backend
-php cli.php
-```
-
-Here is how a command can look like:
-
-```php
-namespace SquareRouting\CLI\Commands;
-
-use SquareRouting\Core\CLI\Colors;
-use SquareRouting\Core\CLI\BaseCommand;
-use SquareRouting\Core\CLI\CommandInterface;
-
-class ExampleCommand extends BaseCommand implements CommandInterface {
-    public function execute(array $args): int {
-        $this->info("Creating backup...");
-        $this->info("Creating backup: TestBackup");
-        for ($i = 1; $i <= 5; $i++) {
-            sleep(1);
-            $this->progress($i, 5, "Backing up data...");
-        }
-        $this->output("Check your Data", Colors::BOLD . Colors::GREEN);
-        $this->success("Backup created successfully: TestBackup");
-        $this->warning("Make sure everything is fine.");
-        $to = $this->ask("Enter recipient email");
-        $subject = $this->ask("Enter subject", false) ?: "Test Email";
-        $this->confirm("Your Subject was: {$subject}?");
-
-        $this->error("Test error message: {$subject}?");
-        return 0;
-    }
-    
-    public function getDescription(): string {
-        return "Create a system backup";
-    }
-}
-```
 
 ## Run the Server
 

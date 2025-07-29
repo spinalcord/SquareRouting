@@ -29,22 +29,33 @@ class Database
     private int $defaultCacheTtl = 300; // 5 minutes default
     private bool $isDirty = false;
     private string $cachePrefix = 'db';
+    private DotEnv $dotEnv;
+    private string $dsn;
+    private string $sqlitePath;
+    private string $dbType;
 
     public function __construct(DotEnv $dotEnv, string $sqlitePath = '', ?Cache $cache = null)
     {
-        $dbType = $dotEnv->get('DB_CONNECTION', 'mysql');
-
-        if ($dbType == 'mysql') {
+        $this->dotEnv = $dotEnv;
+        $this->dbType = $this->dotEnv->get('DB_CONNECTION', 'mysql');
+        $this->sqlitePath = $sqlitePath;
+        $this->cache = $cache;
+        if ($this->dbType == 'mysql') {
             $this->type = DatabaseDialect::MYSQL;
-        } elseif ($dbType == 'sqlite') {
+        } elseif ($this->dbType == 'sqlite') {
             $this->type = DatabaseDialect::SQLITE;
         }
 
-        $dsn = $this->buildDsn($dbType, $dotEnv, $sqlitePath);
+
+    }
+
+    public function connect(): void
+    {
+        $dsn = $this->buildDsn($this->dbType, $this->dotEnv, $this->sqlitePath);
 
         try {
-            $username = $dotEnv->get('DB_USERNAME');
-            $password = $dotEnv->get('DB_PASSWORD');
+            $username = $this->dotEnv->get('DB_USERNAME');
+            $password = $this->dotEnv->get('DB_PASSWORD');
 
             $this->pdo = new PDO($dsn, $username, $password);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -52,8 +63,7 @@ class Database
             $this->pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
 
             // Cache setup
-            if ($cache !== null) {
-                $this->cache = $cache;
+            if ($this->cache !== null) {
                 $this->enableCaching = true;
             }
         } catch (PDOException $e) {
@@ -67,6 +77,7 @@ class Database
 
             exit;
         }
+
     }
 
     public function getPdo(): PDO
@@ -697,4 +708,85 @@ class Database
             'timestamp' => microtime(true),
         ];
     }
+/**
+ * Tests database connection with given parameters
+ * 
+ * @param string $dbType Database type ('mysql' or 'sqlite')
+ * @param array $config Database configuration array
+ * @return bool True if connection successful, false otherwise
+ */
+public function test(string $dbType, array $config): bool
+{
+    try {
+        $dsn = $this->buildTestDsn($dbType, $config);
+        
+        $username = $config['username'] ?? '';
+        $password = $config['password'] ?? '';
+        
+        $testPdo = new PDO($dsn, $username, $password);
+        $testPdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        // Simple test query
+        $testPdo->query('SELECT 1');
+        
+        return true;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Builds DSN for test connection
+ * 
+ * @param string $dbType
+ * @param array $config
+ * @return string
+ */
+private function buildTestDsn(string $dbType, array $config): string
+{
+    $dbType = strtolower($dbType);
+    
+    return match ($dbType) {
+        'mysql' => $this->buildTestMysqlDsn($config),
+        'sqlite' => $this->buildTestSqliteDsn($config),
+        default => throw new InvalidArgumentException("Unsupported database type: {$dbType}")
+    };
+}
+
+/**
+ * Builds MySQL DSN for testing
+ */
+private function buildTestMysqlDsn(array $config): string
+{
+    $host = $config['host'] ?? 'localhost';
+    $database = $config['database'] ?? '';
+    $port = $config['port'] ?? 3306;
+    $charset = $config['charset'] ?? 'utf8mb4';
+    
+    if (!$database) {
+        throw new InvalidArgumentException('MySQL test requires database name');
+    }
+    
+    $dsn = "mysql:host={$host};dbname={$database};charset={$charset}";
+    
+    if ($port) {
+        $dsn .= ";port={$port}";
+    }
+    
+    return $dsn;
+}
+
+/**
+ * Builds SQLite DSN for testing
+ */
+private function buildTestSqliteDsn(array $config): string
+{
+    $database = $config['database'] ?? '';
+    
+    if (!$database) {
+        throw new InvalidArgumentException('SQLite test requires database path');
+    }
+    
+    return "sqlite:{$database}";
+}
 }

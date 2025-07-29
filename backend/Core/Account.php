@@ -31,9 +31,9 @@ class Account
         // Define rate limit for login attempts: 5 attempts within 15 minutes (900 seconds)
         $this->rateLimiter->setLimit($this->loginRateLimitKey, 5, 900);
 
-        if (! $this->db->isConnectionActive()) {
-            throw new RuntimeException('Account feature needs a Database. Database connection not established or is inactive. Ensure the Database class is correctly configured and connected in the DependencyContainer.');
-        }
+        //if (! $this->db->isConnectionActive()) {
+        //    throw new RuntimeException('Account feature needs a Database. Database connection not established or is inactive. Ensure the Database class is correctly configured and connected in the DependencyContainer.');
+        //}
     }
 
     /**

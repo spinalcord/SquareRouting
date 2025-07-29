@@ -35,7 +35,7 @@ class ApplicationRoutes implements RoutableInterface
         $dotEnv = $container->get(DotEnv::class);
 
         // Example how to add a new pattern
-        $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        // $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         $route->get('/', HomeExampleController::class, 'home');
         // Reroute Example
@@ -65,12 +65,6 @@ class ApplicationRoutes implements RoutableInterface
         // Post Example
         $route->post('/post-example', HttpRequestExampleController::class, 'handlePostRequest');
         $route->post('/validate-example-post', ValidatorExampleController::class, 'validateExample');
-
-        if($dotEnv->get("ENABLE_CLI"))
-        {
-            $route->post($dotEnv->get("CLI_ROUTE"), CliController::class, action: 'processCommand');
-            $route->get($dotEnv->get("CLI_ROUTE"), CliController::class, action: 'showTerminal');
-        }
 
         // Put Example
         $route->put('/put-example/:id', HttpRequestExampleController::class, 'handlePutRequest', ['id' => 'num']);
