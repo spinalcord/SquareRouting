@@ -9,7 +9,6 @@ use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\JsonSession;
 use SquareRouting\Core\Language;
-use SquareRouting\Core\MarkdownRenderer;
 use SquareRouting\Core\RateLimiter;
 use SquareRouting\Core\Request;
 use SquareRouting\Core\RouteCollector;
@@ -76,11 +75,6 @@ $config = null;
 
 // Configuration
 
-// MarkdownRenderer
-// You can also create a MarkdownRenderer instance everywhere, but we want to use the same
-// cache system instance everywhere for best performance.
-$container->register(MarkdownRenderer::class, parameters: ['cache' => $cache]);
-$markdownRenderer = $container->get(MarkdownRenderer::class);
 
 // //////////////////////////////////
 // Cors protection (add your domain to the array)

@@ -24,7 +24,6 @@ SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexibl
         - [Template Engine (Views)](#template-engine-views)
         - [Language Support](#language-support)
         - [Configuration System](#configuration-system)
-        - [Markdown Renderer](#markdown-renderer)
     - [Response Handling](#response-handling)
         - [HTML Page Example](#html-page-example)
         - [Redirection Example](#redirection-example)
@@ -44,7 +43,6 @@ SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexibl
 *   **Input Validation**: Robust validation rules for various data types, including nested and array validation.
 *   **Custom Database Class**: A handy way to modify your database.
 *   **Template Engine**: Simple PHP-based template engine for rendering dynamic HTML views with built-in caching.
-*   **Cached Markdown Rendere**: Built in markdown renderer. Up to 15x performance boost with my caching system.
 *   **No `static` !**: You heard it right! No `static` is used in this project, which makes this project perfectly fine for testing.
 ## Installation
 
@@ -615,36 +613,6 @@ public function loginRedirect(): Response {
     return (new Response)->redirect('https://accounts.google.com/login');
 }
 ```
-
-#### Markdown Rendering
-
-Render Markdown content easily with built-in caching for performance.
-If you want to use the cached performance load the MarkdownRenderer instance with the dependency container (recommended),
-if you want to use the MarkdownRenderer for quick prototyping do `$mdr = new MarkdownRenderer();` but this instance has no caching,
-
-```php
-use SquareRouting\Core\MarkdownRenderer;
-use SquareRouting\Core\Response;
-use SquareRouting\Core\DependencyContainer;
-
-class MarkdownExampleController
-{
-    public MarkdownRenderer $mdr;
-
-    public function __construct(DependencyContainer $container)
-    {
-        $this->mdr = $container->get(MarkdownRenderer::class); // Use it like this for best performance
-    }
-
-    public function showMarkdownExample(): Response
-    {
-        $markdownContent = "# Simple Markdown Example";
-        $htmlContent = $this->mdr->render($markdownContent);
-        return (new Response)->html($htmlContent);
-    }
-}
-```
-
 
 ## Run the Server
 

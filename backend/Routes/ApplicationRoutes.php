@@ -16,7 +16,6 @@ use SquareRouting\Controllers\HomeExampleController;
 use SquareRouting\Controllers\HtmlPageExampleController;
 use SquareRouting\Controllers\HttpRequestExampleController;
 use SquareRouting\Controllers\LanguageExampleController;
-use SquareRouting\Controllers\MarkdownExampleController;
 use SquareRouting\Controllers\RateLimiterExampleController;
 use SquareRouting\Controllers\TableExampleController;
 use SquareRouting\Controllers\TemplateExampleController;
@@ -57,10 +56,12 @@ class ApplicationRoutes implements RoutableInterface
             ->filter([ExampleFilter::class]);
 
         $route->get('/template-example', TemplateExampleController::class, 'templateExample');
-        $route->get('/markdown-example', MarkdownExampleController::class, 'showMarkdownExample');
         $route->get('/account-example', AuthenticationController::class, 'accountExample');
 
         $route->get('/language-example', LanguageExampleController::class, 'languageExample');
+
+        // cmd example
+        $route->get('/cmd', HomeExampleController::class, 'cmdExample');
 
         // Post Example
         $route->post('/post-example', HttpRequestExampleController::class, 'handlePostRequest');
