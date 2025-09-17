@@ -61,7 +61,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/language-example', LanguageExampleController::class, 'languageExample');
 
         // cmd example
-        $route->get('/cmd', HomeExampleController::class, 'cmdExample');
+        $route->post('/cmd', HomeExampleController::class, 'cmdExample');
 
         // Post Example
         $route->post('/post-example', HttpRequestExampleController::class, 'handlePostRequest');
