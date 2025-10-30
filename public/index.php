@@ -16,6 +16,8 @@ use SquareRouting\Core\Schema;
 use SquareRouting\Core\View;
 use SquareRouting\Routes\ApplicationRoutes;
 
+
+// Do: composer install.
 require_once __DIR__ . '/../vendor/autoload.php';
 require __DIR__ . '/errorHandler.php';
 

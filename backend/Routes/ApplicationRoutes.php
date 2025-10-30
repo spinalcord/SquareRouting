@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 namespace SquareRouting\Routes;
+use SquareRouting\Controllers\BlogController;
 use SquareRouting\Core\DotEnv;
 use SquareRouting\Controllers\AuthenticationController;
 use SquareRouting\Controllers\CacheExampleController;
 use SquareRouting\Controllers\CliController;
+
 use SquareRouting\Controllers\ConfigExampleController;
 use SquareRouting\Controllers\DashboardExampleController;
 use SquareRouting\Controllers\DatabaseExampleController;
@@ -59,7 +61,8 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/account-example', AuthenticationController::class, 'accountExample');
 
         $route->get('/language-example', LanguageExampleController::class, 'languageExample');
-
+        // blog example 
+        $route->get('/blog', BlogController::class, 'showBlog');
         // cmd example
         $route->post('/cmd', HomeExampleController::class, 'cmdExample');
 
