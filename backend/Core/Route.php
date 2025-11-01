@@ -27,8 +27,9 @@ class Route
     {
         return array_column($this->routes, 'path');
     }
-
-    
+    /**
+     * @param array<int,mixed> $paramPatterns
+     */
     public function get(string $path, string $controller, string $action, array $paramPatterns = []): self
     {
         $route = [

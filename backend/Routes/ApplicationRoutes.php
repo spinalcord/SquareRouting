@@ -1,37 +1,44 @@
 <?php
-
 declare(strict_types=1);
 
 namespace SquareRouting\Routes;
-use SquareRouting\Controllers\BlogController;
-use SquareRouting\Core\DotEnv;
-use SquareRouting\Controllers\AuthenticationController;
-use SquareRouting\Controllers\CacheExampleController;
-use SquareRouting\Controllers\CliController;
+// Controllers
+use SquareRouting\Controllers\{
+    BlogController,
+    AuthenticationController,
+    CacheExampleController,
+    ConfigExampleController,
+    DashboardExampleController,
+    DatabaseExampleController,
+    EnvExampleController,
+    FilterExampleController,
+    HomeExampleController,
+    HtmlPageExampleController,
+    HttpRequestExampleController,
+    LanguageExampleController,
+    RateLimiterExampleController,
+    TableExampleController,
+    TemplateExampleController,
+    TestExampleController,
+    ValidatorExampleController
+};
 
-use SquareRouting\Controllers\ConfigExampleController;
-use SquareRouting\Controllers\DashboardExampleController;
-use SquareRouting\Controllers\DatabaseExampleController;
-use SquareRouting\Controllers\EnvExampleController;
-use SquareRouting\Controllers\FilterExampleController;
-use SquareRouting\Controllers\HomeExampleController;
-use SquareRouting\Controllers\HtmlPageExampleController;
-use SquareRouting\Controllers\HttpRequestExampleController;
-use SquareRouting\Controllers\LanguageExampleController;
-use SquareRouting\Controllers\RateLimiterExampleController;
-use SquareRouting\Controllers\TableExampleController;
-use SquareRouting\Controllers\TemplateExampleController;
-use SquareRouting\Controllers\TestExampleController;
-use SquareRouting\Controllers\ValidatorExampleController;
-use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\Interfaces\RoutableInterface;
-use SquareRouting\Core\Route;
+// Core & Utilities
+use SquareRouting\Core\{
+    DotEnv,
+    DependencyContainer,
+    Interfaces\RoutableInterface,
+    Route
+};
+
+// Filters & Validation
 use SquareRouting\Filters\ExampleFilter;
-use SquareRouting\Core\Validation\Rules\IsNumber;
-use SquareRouting\Core\Validation\Rules\AlphaNumeric;
-use SquareRouting\Core\Validation\Rules\IsString;
-use SquareRouting\Core\Validation\Rules\PathRouteRule;
-
+use SquareRouting\Core\Validation\Rules\{
+    IsNumber,
+    IsString,
+    PathRouteRule
+};
+ 
 class ApplicationRoutes implements RoutableInterface
 {
     public function getRoute(DependencyContainer $container): Route
