@@ -181,11 +181,11 @@ $route->get('/api/:key', ApiController::class, 'handle', [
 ```
 
 **Benefits over Regex Patterns:**
-- ✅ **Type Safety** - No more string-based pattern errors
-- ✅ **Reusable** - Same validators for forms and routes
-- ✅ **Extensible** - Easy to create custom validation logic
-- ✅ **Better Error Messages** - Clear validation feedback
-- ✅ **IDE Support** - Autocomplete and type hinting
+-  **Type Safety** - No more string-based pattern errors
+-  **Reusable** - Same validators for forms and routes
+-  **Extensible** - Easy to create custom validation logic
+-  **Better Error Messages** - Clear validation feedback
+-  **IDE Support** - Autocomplete and type hinting
 
 #### Route Collection
 
