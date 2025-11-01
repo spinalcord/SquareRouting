@@ -33,7 +33,7 @@ SquareRouting (Approx 0.35 Mb without comments) is a powerful, fast, and flexibl
 ## Features
 *   **Language Support**: Multi-language support via route segments (e.g. http://localhost:8000/en)
 *   **Flexible Routing**: Define routes for GET, POST, PUT, DELETE, PATCH, and REROUTE (redirection) methods.
-*   **Path Parameters**: Supports dynamic URL segments with predefined patterns (e.g., `num`, `alpha`, `slug`) and a special `:path` parameter for capturing entire sub-paths, including slashes.
+*   **Validator-Based Route Parameters**: Modern approach using validator objects instead of regex patterns for type-safe route parameter validation. Includes built-in validators for numbers, strings, alphanumeric, and path parameters with slashes.
 *   **Route Filters**: Apply 'before' and 'after' filters to routes for tasks like authentication, logging, or data manipulation. Filters are classes with `before` and `after` methods that receive the `DependencyContainer`.
 *   **Dependency Injection**: Integrates with a `DependencyContainer` for managing and injecting dependencies into controllers and filters.
 *   **Built-in Rate Limiting**: Protect your endpoints from abuse with an easy-to-use rate limiting mechanism that stores data in a JSON file.
@@ -64,7 +64,7 @@ This project uses Composer for dependency management.
 
 #### Defining Routes
 
-Create your routes in `app/Routes/ApplicationRoutes.php`. Here's how to add different types of routes:
+Create your routes in `backend/Routes/ApplicationRoutes.php`. Here's how to add different types of routes:
 
 ```php
 // backend/Routes/ApplicationRoutes.php
@@ -80,15 +80,20 @@ class ApplicationRoutes implements RoutableInterface
     {
         $route = new Route($container);
 
-        // Add custom URL patterns
-        $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+        // Route parameters are now validated using validator objects
+        // No more need for addPattern() - use validators instead!
 
         // Redirect old URLs to new ones
         $route->reroute('/old-path', '/new-path');
 
-        // Basic routes with parameters
-        $route->get('/hello/:name', ExampleController::class, 'sayHello', ['name' => 'alpha']);
-        $route->get('/user/:id', ExampleController::class, 'getUser', ['id' => 'num']);
+        // Basic routes with validator-based parameters
+        use SquareRouting\Core\Validation\Rules\IsString;
+        use SquareRouting\Core\Validation\Rules\IsNumber;
+        use SquareRouting\Core\Validation\Rules\PathRouteRule;
+
+        $route->get('/hello/:name', ExampleController::class, 'sayHello', ['name' => [new IsString()]]);
+        $route->get('/user/:id', ExampleController::class, 'getUser', ['id' => [new IsNumber()]]);
+        $route->get('/blog/:slug', BlogController::class, 'showPost', ['slug' => [new PathRouteRule()]]);
         
         // Routes with filters (middleware)
         $route->get('/admin', ExampleController::class, 'adminPanel')
@@ -96,13 +101,91 @@ class ApplicationRoutes implements RoutableInterface
 
         // Different HTTP methods
         $route->post('/users', ExampleController::class, 'createUser');
-        $route->put('/users/:id', ExampleController::class, 'updateUser', ['id' => 'num']);
-        $route->delete('/users/:id', ExampleController::class, 'deleteUser', ['id' => 'num']);
+        $route->put('/users/:id', ExampleController::class, 'updateUser', ['id' => [new IsNumber()]]);
+        $route->delete('/users/:id', ExampleController::class, 'deleteUser', ['id' => [new IsNumber()]]);
 
         return $route;
     }
 }
 ```
+
+#### Validator-Based Route Parameters
+
+SquareRouting uses modern validator objects instead of regex patterns for route parameter validation. This provides better type safety and reusability.
+
+**Available Built-in Validators:**
+
+- **`IsNumber`** - Validates numeric values (integers, floats)
+- **`IsString`** - Validates string values
+- **`AlphaNumeric`** - Validates alphanumeric strings (letters + numbers only)
+- **`PathRouteRule`** - Validates path parameters with slashes (for blog posts, file paths, etc.)
+- **`Required`** - Ensures parameter is present and not empty
+- **`Email`** - Validates email format
+- **`Min`** - Validates minimum length/value
+- **`Max`** - Validates maximum length/value
+
+**Usage Examples:**
+
+```php
+use SquareRouting\Core\Validation\Rules\IsNumber;
+use SquareRouting\Core\Validation\Rules\IsString;
+use SquareRouting\Core\Validation\Rules\AlphaNumeric;
+use SquareRouting\Core\Validation\Rules\PathRouteRule;
+use SquareRouting\Core\Validation\Rules\Required;
+use SquareRouting\Core\Validation\Rules\Email;
+
+// Single validator
+$route->get('/user/:id', UserController::class, 'show', ['id' => [new IsNumber()]]);
+
+// Multiple validators for the same parameter
+$route->post('/user/:email', UserController::class, 'update', [
+    'email' => [new Required(), new Email()]
+]);
+
+// Path parameters with slashes (great for blogs, file managers)
+$route->get('/blog/:postPath', BlogController::class, 'showPost', [
+    'postPath' => [new PathRouteRule()]
+]);
+// Matches: /blog/my-cool-article, /blog/category/subcategory/article-name
+
+// Alphanumeric parameters
+$route->get('/product/:sku', ProductController::class, 'show', [
+    'sku' => [new AlphaNumeric()]
+]);
+// Matches: /product/ABC123, but not /product/ABC-123
+```
+
+**Creating Custom Validators:**
+
+```php
+use SquareRouting\Core\Interfaces\RuleInterface;
+
+final readonly class CustomValidator implements RuleInterface
+{
+    public function validate(string $field, mixed $value, array $data): bool
+    {
+        // Your validation logic here
+        return is_string($value) && strlen($value) >= 3;
+    }
+
+    public function message(string $field): string
+    {
+        return "The {$field} must be at least 3 characters long.";
+    }
+}
+
+// Use your custom validator
+$route->get('/api/:key', ApiController::class, 'handle', [
+    'key' => [new CustomValidator()]
+]);
+```
+
+**Benefits over Regex Patterns:**
+- ✅ **Type Safety** - No more string-based pattern errors
+- ✅ **Reusable** - Same validators for forms and routes
+- ✅ **Extensible** - Easy to create custom validation logic
+- ✅ **Better Error Messages** - Clear validation feedback
+- ✅ **IDE Support** - Autocomplete and type hinting
 
 #### Route Collection
 

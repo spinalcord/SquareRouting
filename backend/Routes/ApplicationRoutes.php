@@ -27,6 +27,10 @@ use SquareRouting\Core\DependencyContainer;
 use SquareRouting\Core\Interfaces\RoutableInterface;
 use SquareRouting\Core\Route;
 use SquareRouting\Filters\ExampleFilter;
+use SquareRouting\Core\Validation\Rules\IsNumber;
+use SquareRouting\Core\Validation\Rules\AlphaNumeric;
+use SquareRouting\Core\Validation\Rules\IsString;
+use SquareRouting\Core\Validation\Rules\PathRouteRule;
 
 class ApplicationRoutes implements RoutableInterface
 {
@@ -47,11 +51,11 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/table-example', TableExampleController::class, 'tableExample');
         // Get Examples
         $route->get('/html', HtmlPageExampleController::class, 'showHtmlPage');
-        $route->get('/test/:myid', TestExampleController::class, 'someTest', ['myid' => 'num']);
+        $route->get('/test/:myid', TestExampleController::class, 'someTest', ['myid' => [new IsNumber()]]);
         $route->get('/rate-limit-example', RateLimiterExampleController::class, 'rateLimiterExample');
         $route->get('/cache-example', CacheExampleController::class, 'cacheExample');
         $route->get('/validator-example', ValidatorExampleController::class, 'showValidatorExample');
-        $route->get('/dashboard/:location', DashboardExampleController::class, 'dashboardExample', ['location' => 'path']);
+        $route->get('/dashboard/:location', DashboardExampleController::class, 'dashboardExample', ['location' => [new IsString()]]);
         $route->get('/dotenv-example', EnvExampleController::class, 'envExample');
         $route->get('/database-example', DatabaseExampleController::class, 'databaseExamples');
         $route->get('/filtertest', FilterExampleController::class, 'filterTest')
@@ -61,8 +65,8 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/account-example', AuthenticationController::class, 'accountExample');
 
         $route->get('/language-example', LanguageExampleController::class, 'languageExample');
-        // blog example 
-        $route->get('/blog/:blogPath', BlogController::class, 'showBlog', ['blogPath' => 'path']);
+        // blog example
+        $route->get('/blog/:blogPath', BlogController::class, 'showBlog', ['blogPath' => [new PathRouteRule()]]);
         // cmd example
         $route->post('/cmd', HomeExampleController::class, 'cmdExample');
 
@@ -71,14 +75,14 @@ class ApplicationRoutes implements RoutableInterface
         $route->post('/validate-example-post', ValidatorExampleController::class, 'validateExample');
 
         // Put Example
-        $route->put('/put-example/:id', HttpRequestExampleController::class, 'handlePutRequest', ['id' => 'num']);
+        $route->put('/put-example/:id', HttpRequestExampleController::class, 'handlePutRequest', ['id' => [new IsNumber()]]);
 
         // Delete Example
-        $route->delete('/delete-example/:id', HttpRequestExampleController::class, 'handleDeleteRequest', ['id' => 'num']);
+        $route->delete('/delete-example/:id', HttpRequestExampleController::class, 'handleDeleteRequest', ['id' => [new IsNumber()]]);
 
         // Patch Example
-        $route->patch('/patch-example/:id', HttpRequestExampleController::class, 'handlePatchRequest', ['id' => 'num']);
-
+        $route->patch('/patch-example/:id', HttpRequestExampleController::class, 'handlePatchRequest', ['id' => [new IsNumber()]]);
+        
         return $route;
     }
 }

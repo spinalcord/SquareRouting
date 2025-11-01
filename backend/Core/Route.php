@@ -2,6 +2,8 @@
 
 namespace SquareRouting\Core;
 
+use SquareRouting\Core\Interfaces\RuleInterface;
+use SquareRouting\Core\Validation\Rules\PathRouteRule;
 use Throwable;
 
 /**
@@ -10,21 +12,6 @@ use Throwable;
 class Route
 {
     private array $routes = [];
-    private array $patterns = [
-        'num' => '[0-9]+',
-        'alnum' => '[A-Za-z0-9]+',
-        'alpha' => '[A-Za-z]+',
-        'any' => '[^/]+',
-        'slug' => '[a-z0-9]+(?:-[a-z0-9]+)*',
-        'date' => '[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])',
-        'year' => '[0-9]{4}',
-        'month' => '(?:0[1-9]|1[0-2])',
-        'day' => '(?:0[1-9]|[12][0-9]|3[01])',
-        'bool' => '(?:true|false|1|0|yes|no)',
-        'hexcolor' => '#?(?:[0-9a-fA-F]{3}){1,2}',
-        'langcode' => '[a-z]{2}(?:-[A-Z]{2})?',
-        'path' => '[a-zA-Z0-9\-\._~/]+', // New pattern for path parameters that can include slashes, more secure
-    ];
     private Request $request;
     private DependencyContainer $container;
     private Language $language;
@@ -41,11 +28,7 @@ class Route
         return array_column($this->routes, 'path');
     }
 
-    public function addPattern(string $name, string $pattern): void
-    {
-        $this->patterns[$name] = $pattern;
-    }
-
+    
     public function get(string $path, string $controller, string $action, array $paramPatterns = []): self
     {
         $route = [
@@ -171,8 +154,20 @@ class Route
                 continue;
             }
 
-            // Check for path parameters
-            if (strpos($route['path'], ':path') !== false) {
+            // Check if route has PathRouteRule validator
+            $hasPathValidator = false;
+            foreach ($route['params'] as $paramName => $validators) {
+                if (is_array($validators)) {
+                    foreach ($validators as $validator) {
+                        if ($validator instanceof PathRouteRule) {
+                            $hasPathValidator = true;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($hasPathValidator) {
                 $patternResult = $this->matchPathParameter($route, $requestPath);
                 if ($patternResult) {
                     [$matches, $params] = $patternResult;
@@ -182,14 +177,9 @@ class Route
                     return true;
                 }
             } else {
-                $pattern = $this->buildRoutePattern($route['path'], $route['params']);
-                if (preg_match($pattern, $requestPath, $matches)) {
-                    $params = [];
-                    foreach ($matches as $key => $value) {
-                        if (is_string($key)) {
-                            $params[$key] = ($route['params'][$key] ?? '[^/]+') === $this->patterns['any'] ? urldecode($value) : $value;
-                        }
-                    }
+                $matchResult = $this->matchRouteWithValidators($route, $requestPath);
+                if ($matchResult) {
+                    [$matches, $params] = $matchResult;
 
                     $this->executeRoute($route, $params);
 
@@ -257,8 +247,17 @@ class Route
     private function compileParamPatterns(array $paramPatterns): array
     {
         $compiled = [];
-        foreach ($paramPatterns as $param => $patternKey) {
-            $compiled[$param] = $this->patterns[$patternKey] ?? $patternKey;
+        foreach ($paramPatterns as $param => $patternOrValidator) {
+            if ($patternOrValidator instanceof RuleInterface) {
+                // Handle validator objects
+                $compiled[$param] = $patternOrValidator;
+            } elseif (is_array($patternOrValidator) && isset($patternOrValidator[0]) && $patternOrValidator[0] instanceof RuleInterface) {
+                // Handle array of validators
+                $compiled[$param] = $patternOrValidator;
+            } else {
+                // Handle legacy pattern strings
+                $compiled[$param] = $this->patterns[$patternOrValidator] ?? $patternOrValidator;
+            }
         }
 
         return $compiled;
@@ -273,8 +272,26 @@ class Route
      */
     private function matchPathParameter(array $route, string $requestPath): ?array
     {
-        // Extract the part before :path
-        $parts = explode('/:path', $route['path']);
+        // Find the parameter with PathRouteRule validator
+        $pathParamName = null;
+        foreach ($route['params'] as $paramName => $validators) {
+            if (is_array($validators)) {
+                foreach ($validators as $validator) {
+                    if ($validator instanceof PathRouteRule) {
+                        $pathParamName = $paramName;
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        if ($pathParamName === null) {
+            return null; // No PathRouteRule found
+        }
+
+        // Build the route pattern to extract prefix
+        $routePattern = str_replace(':' . $pathParamName, ':path_placeholder', $route['path']);
+        $parts = explode('/:path_placeholder', $routePattern);
         $prefix = $parts[0];
 
         // Check if the request path starts with the prefix
@@ -285,14 +302,69 @@ class Route
         // Extract the path parameter value
         $pathValue = substr($requestPath, strlen($prefix) + 1);
 
-        // If there's more to the route after :path, check that too
+        // If there's more to the route after the path parameter, check that too
         if (isset($parts[1]) && $parts[1] !== '') {
-            // Not handling complex patterns after :path for simplicity
+            // Not handling complex patterns after path parameter for simplicity
             return null;
         }
 
-        $matches = ['path' => $pathValue];
-        $params = ['path' => $pathValue];
+        // Validate the extracted path value with the PathRouteRule
+        $pathValidator = new PathRouteRule();
+        if (!$pathValidator->validate($pathParamName, $pathValue, [])) {
+            return null; // Validation failed
+        }
+
+        $matches = [$pathParamName => $pathValue];
+        $params = [$pathValue]; // Numerical array for controller parameters
+
+        return [$matches, $params];
+    }
+
+    /**
+     * Match route using validators instead of regex patterns
+     *
+     * @param  array  $route  Route definition
+     * @param  string  $requestPath  Requested path
+     * @return array|null Match result or null if no match
+     */
+    private function matchRouteWithValidators(array $route, string $requestPath): ?array
+    {
+        $routeSegments = explode('/', ltrim($route['path'], '/'));
+        $requestSegments = explode('/', ltrim($requestPath, '/'));
+
+        if (count($routeSegments) !== count($requestSegments)) {
+            return null;
+        }
+
+        $params = [];
+        $matches = [];
+
+        foreach ($routeSegments as $index => $segment) {
+            if (str_starts_with($segment, ':')) {
+                $paramName = substr($segment, 1);
+                $value = urldecode($requestSegments[$index]);
+                $validator = $route['params'][$paramName] ?? null;
+
+                // Validate with validator if available
+                if ($validator instanceof RuleInterface) {
+                    if (!$validator->validate($paramName, $value, [])) {
+                        return null; // Validation failed
+                    }
+                } elseif (is_array($validator) && isset($validator[0]) && $validator[0] instanceof RuleInterface) {
+                    // Check all validators in the array
+                    foreach ($validator as $v) {
+                        if (!$v->validate($paramName, $value, [])) {
+                            return null; // Validation failed
+                        }
+                    }
+                }
+
+                $params[] = $value;  // Numerisches Array für call_user_func_array
+                $matches[$paramName] = $value;
+            } elseif ($segment !== $requestSegments[$index]) {
+                return null; // Static segment doesn't match
+            }
+        }
 
         return [$matches, $params];
     }
@@ -373,25 +445,5 @@ class Route
             $errorResponse = new Response;
             $errorResponse->error('Internal Server Error', 500)->send();
         }
-    }
-
-    /**
-     * @param  array<int,mixed>  $paramPatterns
-     */
-    private function buildRoutePattern(string $path, array $paramPatterns): string
-    {
-        $segments = explode('/', ltrim($path, '/'));
-        $regexSegments = [];
-        foreach ($segments as $segment) {
-            if (str_starts_with($segment, ':')) {
-                $paramName = substr($segment, 1);
-                $pattern = $paramPatterns[$paramName] ?? '[^/]+';
-                $regexSegments[] = "(?P<{$paramName}>{$pattern})";
-            } else {
-                $regexSegments[] = preg_quote($segment, '/');
-            }
-        }
-
-        return '#^/' . implode('/', $regexSegments) . '$#';
     }
 }
