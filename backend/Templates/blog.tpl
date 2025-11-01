@@ -5,7 +5,9 @@
   <title></title>
 </head>
 <body>
-  <div id="output"></div>
+  <div id="output">
+    <p>Loading...</p>
+  </div>
 
   <script type="module">
     // Import von markdown-it als ES‑Modul
@@ -13,12 +15,37 @@
 
     const md = markdownIt();               // Instanz erzeugen
     const output = document.getElementById('output');
+    const blogPath = `{{ $blogPath }}`;
 
-    // Markdown-Inhalt vom Server als JavaScript-escaped Variable verwenden
-    const markdownString = `{{ $blogContentJs }}`;
+    // Markdown-Inhalt via AJAX fetchen
+    async function loadBlogContent() {
+      try {
+        const response = await fetch(`/blog/${blogPath}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
 
-    // Rendering des dynamischen Markdown-Inhalts
-    output.innerHTML = md.render(markdownString);
+        if (!response.ok) {
+          throw new Error('Blog post not found');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Rendering des dynamischen Markdown-Inhalts
+          output.innerHTML = md.render(data.content);
+        } else {
+          output.innerHTML = `<p>Error: ${data.error}</p>`;
+        }
+      } catch (error) {
+        output.innerHTML = `<p>Error loading blog content: ${error.message}</p>`;
+      }
+    }
+
+    // Content laden wenn Seite ready ist
+    loadBlogContent();
   </script>
 </body>
 </html>

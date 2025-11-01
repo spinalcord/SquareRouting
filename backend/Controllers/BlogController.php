@@ -21,27 +21,28 @@ class BlogController
    
     public function showBlog(string $blogPath): Response
     {
-          
-        $target_file = $this->blogLocation . $blogPath . '.md'; 
+        $this->view->set('blogPath', $blogPath);
+        $output = $this->view->render('blog.tpl');
+        return (new Response)->html($output);
+    }
+
+    public function getBlogContent(string $blogPath): Response
+    {
+        $target_file = $this->blogLocation . $blogPath . '.md';
 
         if(file_exists($target_file))
         {
           $blogContent = file_get_contents($target_file);
-
-          $blogContentJs = str_replace('`', '\\`', $blogContent);
-          $blogContentJs = str_replace('${', '\\${', $blogContentJs);
-
-          $data = [
-              'blogContentJs' => $blogContentJs,
-          ];
-
-          $this->view->setMultiple($data);
-          $output = $this->view->render('blog.tpl');
-          return (new Response)->html($output);
+          return (new Response)->json([
+              'content' => $blogContent,
+              'success' => true
+          ]);
         }
         else{
-
-          return (new Response)->text("404");
+          return (new Response)->json([
+              'error' => 'Blog post not found',
+              'success' => false
+          ], 404);
         }
     }
 }

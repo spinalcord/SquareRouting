@@ -72,6 +72,7 @@ class ApplicationRoutes implements RoutableInterface
         $route->get('/language-example', LanguageExampleController::class, 'languageExample');
         // blog example
         $route->get('/blog/:blogPath', BlogController::class, 'showBlog', ['blogPath' => [new IsPath()]]);
+        $route->post('/blog/:blogPath', BlogController::class, 'getBlogContent', ['blogPath' => [new IsPath()]]);
         // cmd example
         $route->post('/cmd', HomeExampleController::class, 'cmdExample');
 
