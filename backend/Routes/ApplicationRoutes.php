@@ -46,8 +46,6 @@ class ApplicationRoutes implements RoutableInterface
         $route = new Route($container);
         $dotEnv = $container->get(DotEnv::class);
 
-        // Example how to add a new pattern
-        // $route->addPattern('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
 
         $route->get('/', HomeExampleController::class, 'home');
         // Reroute Example
