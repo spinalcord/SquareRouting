@@ -3,9 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <title></title>
+  <style>
+    #output {
+      opacity: 0;
+      animation: fadeIn 0.3s ease-in-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .loading {
+      opacity: 1;
+      animation: none;
+    }
+  </style>
 </head>
 <body>
-  <div id="output">
+  <div id="output" class="loading">
     <p>Loading...</p>
   </div>
 
