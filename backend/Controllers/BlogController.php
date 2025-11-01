@@ -10,19 +10,38 @@ use SquareRouting\Core\View;
 class BlogController
 {
     public View $view;
-
+    public string $blogLocation;
+ 
     public function __construct(DependencyContainer $container)
     {
         $this->view = $container->get(View::class);
+        $this->blogLocation = $container->get('blog_location');
     }
-
-    public function showBlog(): Response
+     
+   
+    public function showBlog(string $blogPath): Response
     {
-        $data = [];
+          
+        $target_file = $this->blogLocation . $blogPath . '.md'; 
 
-        $this->view->setMultiple($data);
-        $output = $this->view->render('blog.tpl');
+        if(file_exists($target_file))
+        {
+          $blogContent = file_get_contents($target_file);
 
-        return (new Response)->html($output);
+          $blogContentJs = str_replace('`', '\\`', $blogContent);
+          $blogContentJs = str_replace('${', '\\${', $blogContentJs);
+
+          $data = [
+              'blogContentJs' => $blogContentJs,
+          ];
+
+          $this->view->setMultiple($data);
+          $output = $this->view->render('blog.tpl');
+          return (new Response)->html($output);
+        }
+        else{
+
+          return (new Response)->text("404");
+        }
     }
 }

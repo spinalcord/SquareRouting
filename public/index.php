@@ -38,6 +38,7 @@ $container->set('sqlite_file_location', fn() => __DIR__ . '/../backend/Database/
 $container->set('rate_limit_temp_file_location', fn() => $container->get('cache_location') . '/rate_limit.cache');
 $container->set('languages_location', fn() => __DIR__ . '/../backend/Languages/');
 $container->set('schema_enums_location', fn() => __DIR__ . '/../backend/Core/Schema/');
+$container->set('blog_location', fn() => __DIR__ . '/../backend/Blogs/');
 
 $container->register(DotEnv::class, parameters: ['path' => $container->get('env_file_location')]);
 $dotEnv = $container->get(DotEnv::class);
