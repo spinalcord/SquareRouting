@@ -3,7 +3,7 @@
 namespace SquareRouting\Core;
 
 use SquareRouting\Core\Interfaces\RuleInterface;
-use SquareRouting\Core\Validation\Rules\PathRouteRule;
+use SquareRouting\Core\Validation\Rules\IsPath;
 use Throwable;
 
 /**
@@ -160,7 +160,7 @@ class Route
             foreach ($route['params'] as $paramName => $validators) {
                 if (is_array($validators)) {
                     foreach ($validators as $validator) {
-                        if ($validator instanceof PathRouteRule) {
+                        if ($validator instanceof IsPath) {
                             $hasPathValidator = true;
                             break 2;
                         }
@@ -278,7 +278,7 @@ class Route
         foreach ($route['params'] as $paramName => $validators) {
             if (is_array($validators)) {
                 foreach ($validators as $validator) {
-                    if ($validator instanceof PathRouteRule) {
+                    if ($validator instanceof IsPath) {
                         $pathParamName = $paramName;
                         break 2;
                     }
@@ -310,7 +310,7 @@ class Route
         }
 
         // Validate the extracted path value with the PathRouteRule
-        $pathValidator = new PathRouteRule();
+        $pathValidator = new IsPath();
         if (!$pathValidator->validate($pathParamName, $pathValue, [])) {
             return null; // Validation failed
         }

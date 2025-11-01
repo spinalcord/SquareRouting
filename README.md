@@ -89,11 +89,11 @@ class ApplicationRoutes implements RoutableInterface
         // Basic routes with validator-based parameters
         use SquareRouting\Core\Validation\Rules\IsString;
         use SquareRouting\Core\Validation\Rules\IsNumber;
-        use SquareRouting\Core\Validation\Rules\PathRouteRule;
+        use SquareRouting\Core\Validation\Rules\IsPath;
 
         $route->get('/hello/:name', ExampleController::class, 'sayHello', ['name' => [new IsString()]]);
         $route->get('/user/:id', ExampleController::class, 'getUser', ['id' => [new IsNumber()]]);
-        $route->get('/blog/:slug', BlogController::class, 'showPost', ['slug' => [new PathRouteRule()]]);
+        $route->get('/blog/:slug', BlogController::class, 'showPost', ['slug' => [new IsPath()]]);
         
         // Routes with filters (middleware)
         $route->get('/admin', ExampleController::class, 'adminPanel')
@@ -118,7 +118,7 @@ SquareRouting uses modern validator objects instead of regex patterns for route 
 - **`IsNumber`** - Validates numeric values (integers, floats)
 - **`IsString`** - Validates string values
 - **`AlphaNumeric`** - Validates alphanumeric strings (letters + numbers only)
-- **`PathRouteRule`** - Validates path parameters with slashes (for blog posts, file paths, etc.)
+- **`IsPath`** - Validates path parameters with slashes (for blog posts, file paths, etc.)
 - **`Required`** - Ensures parameter is present and not empty
 - **`Email`** - Validates email format
 - **`Min`** - Validates minimum length/value
@@ -130,7 +130,7 @@ SquareRouting uses modern validator objects instead of regex patterns for route 
 use SquareRouting\Core\Validation\Rules\IsNumber;
 use SquareRouting\Core\Validation\Rules\IsString;
 use SquareRouting\Core\Validation\Rules\AlphaNumeric;
-use SquareRouting\Core\Validation\Rules\PathRouteRule;
+use SquareRouting\Core\Validation\Rules\IsPath;
 use SquareRouting\Core\Validation\Rules\Required;
 use SquareRouting\Core\Validation\Rules\Email;
 
@@ -144,7 +144,7 @@ $route->post('/user/:email', UserController::class, 'update', [
 
 // Path parameters with slashes (great for blogs, file managers)
 $route->get('/blog/:postPath', BlogController::class, 'showPost', [
-    'postPath' => [new PathRouteRule()]
+    'postPath' => [new IsPath()]
 ]);
 // Matches: /blog/my-cool-article, /blog/category/subcategory/article-name
 

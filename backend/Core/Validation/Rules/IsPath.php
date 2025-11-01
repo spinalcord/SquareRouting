@@ -6,7 +6,7 @@ namespace SquareRouting\Core\Validation\Rules;
 
 use SquareRouting\Core\Interfaces\RuleInterface;
 
-final readonly class PathRouteRule implements RuleInterface
+final readonly class IsPath implements RuleInterface
 {
     public function validate(string $field, mixed $value, array $data): bool
     {
