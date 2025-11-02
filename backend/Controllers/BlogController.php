@@ -33,10 +33,7 @@ class BlogController
         if(file_exists($target_file))
         {
           $blogContent = file_get_contents($target_file);
-          return (new Response)->json([
-              'content' => $blogContent,
-              'success' => true
-          ]);
+          return (new Response)->text($blogContent);
         }
         else{
           return (new Response)->json([
