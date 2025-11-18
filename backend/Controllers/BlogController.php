@@ -3,15 +3,15 @@
 namespace SquareRouting\Controllers;
 
 use SquareRouting\Core\DependencyContainer;
-use SquareRouting\Core\DotEnv;
 use SquareRouting\Core\Response;
 use SquareRouting\Core\View;
+
 
 class BlogController
 {
     public View $view;
     public string $blogLocation;
- 
+     
     public function __construct(DependencyContainer $container)
     {
         $this->view = $container->get(View::class);
@@ -25,6 +25,8 @@ class BlogController
         $output = $this->view->render('blog.tpl');
         return (new Response)->html($output);
     }
+
+
 
     public function getBlogContent(string $blogPath): Response
     {
